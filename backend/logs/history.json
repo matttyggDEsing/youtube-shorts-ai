@@ -1,5 +1,204 @@
 [
   {
+    "id": "93172ff1-ecac-46c3-b418-8ef2c8838216",
+    "title": "Llamada desde la tumba",
+    "category": "misterio",
+    "filePath": "output\\20260626231251_misterio_llamada-desde-la-tumba.mp4",
+    "youtubeUrl": "https://youtu.be/5ppD-XzxfQE",
+    "status": "uploaded",
+    "createdAt": "2026-06-26T23:12:20.066Z",
+    "duration": 22,
+    "description": "Descubre el misterio detrás de una llamada que cambió mi vida. Suscríbete y espera la parte 2 para saber qué pasó después.",
+    "tags": [
+      "misterio",
+      "llamada",
+      "tumba",
+      "suspenso",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "5ppD-XzxfQE"
+  },
+  {
+    "id": "000d73c9-e9d5-4f09-84ae-bf2849230c4d",
+    "title": "Grabaron lo imposible",
+    "category": "misterio",
+    "filePath": "output\\20260626230747_misterio_grabaron-lo-imposible.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T23:07:19.069Z",
+    "duration": 25,
+    "description": "Un misterio que me persigue. ¡Suscríbete y mira la parte 2 para descubrir la verdad!",
+    "tags": [
+      "misterio",
+      "terror",
+      "suspense",
+      "lo imposible",
+      "grabación",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "47b6ea21-42fe-4978-9eb3-64e5b47ad01c",
+    "title": "Trampa en el Cosmos",
+    "category": "ciencia_ficcion",
+    "filePath": "output\\20260626230150_ciencia_ficcion_trampa-en-el-cosmos.mp4",
+    "youtubeUrl": "https://youtu.be/ARlbj-Q7ppg",
+    "status": "uploaded",
+    "createdAt": "2026-06-26T23:01:20.893Z",
+    "duration": 24,
+    "description": "Desaparecí en el espacio. Mi nave se estrelló en un planeta desconocido. ¿Qué encontré allí? Suscríbete y mira la parte 2 para descubrirlo.",
+    "tags": [
+      "ciencia ficción",
+      "espacio",
+      "supervivencia",
+      "misterio",
+      "suspense",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "ARlbj-Q7ppg"
+  },
+  {
+    "id": "6a575246-d8d7-48d8-9d2d-25ce3387cfe2",
+    "title": "La noche que desaparecí",
+    "category": "misterio",
+    "filePath": "output\\20260626225324_misterio_la-noche-que-desapareci.mp4",
+    "youtubeUrl": "https://youtu.be/48NzkB_aV0I",
+    "status": "uploaded",
+    "createdAt": "2026-06-26T22:52:56.059Z",
+    "duration": 28,
+    "description": "Descubre lo que happened esa noche oscura. ¡No te pierdas la continuación! Suscríbete para ver la parte 2.",
+    "tags": [
+      "misterio",
+      "desaparición",
+      "noche oscura",
+      "suspense",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "48NzkB_aV0I"
+  },
+  {
+    "id": "09bcf034-f7c2-416d-8578-299711518ab8",
+    "title": "Desaparecí",
+    "category": "suspenso",
+    "filePath": "output\\20260626224723_suspenso_desapareci.mp4",
+    "youtubeUrl": "https://youtu.be/UpRiR7xiyf8",
+    "status": "uploaded",
+    "createdAt": "2026-06-26T22:46:52.224Z",
+    "duration": 29,
+    "description": "Descubre cómo mi vida cambió para siempre en una noche. ¡Suscríbete y no te pierdas la parte 2!",
+    "tags": [
+      "misterio",
+      "suspense",
+      "thriller",
+      "desaparición",
+      "terror",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "UpRiR7xiyf8"
+  },
+  {
+    "id": "e3f1d191-d7dc-4e7d-9dd7-b2b6540ad29a",
+    "title": "Amor en el Viento",
+    "category": "romance",
+    "filePath": "output\\20260626222631_romance_amor-en-el-viento.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T22:25:56.099Z",
+    "duration": 26,
+    "description": "Un encuentro fortuito que cambió mi vida para siempre. ¡Suscríbete y descubre qué pasó después!",
+    "tags": [
+      "amor",
+      "encuentro",
+      "fortuito",
+      "vida",
+      "cambio",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "0d989abc-43b5-4f44-b668-3f874e86eab3",
+    "title": "Mi noche más aterradora",
+    "category": "romance",
+    "filePath": "output\\20260626222224_romance_mi-noche-mas-aterradora.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T22:21:53.296Z",
+    "duration": 24,
+    "description": "Un encuentro fortuito que cambió mi vida para siempre. Suscríbete y no te pierdas la parte 2.",
+    "tags": [
+      "historias de amor",
+      "encuentros fortuitos",
+      "noche aterradora",
+      "misterio",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "5d4e84e7-31cc-4ad9-b834-53f6ef4149c4",
+    "title": "Amor en el momento menos esperado",
+    "category": "romance",
+    "filePath": "output\\20260626221940_romance_amor-en-el-momento-menos-esperado.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T22:19:07.137Z",
+    "duration": 26,
+    "description": "Descubre cómo mi vida cambió en un instante. ¡Suscríbete y no te pierdas la parte 2! Historias de amor inesperado, destino y casualidades.",
+    "tags": [
+      "amor",
+      "destino",
+      "casualidades",
+      "encuentros",
+      "historias",
+      "shorts",
+      "romance"
+    ]
+  },
+  {
+    "id": "6b4ac702-f768-4a7e-a475-4abc9679db3b",
+    "title": "La casa de mis pesadillas",
+    "category": "terror",
+    "filePath": "output\\20260626221624_terror_la-casa-de-mis-pesadillas.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T22:15:50.575Z",
+    "duration": 24,
+    "description": "Descubre el terror que viví en una casa embrujada. Suscríbete y mira la parte 2 para saber qué pasó después.",
+    "tags": [
+      "terror",
+      "casa embrujada",
+      "misterio",
+      "suspense",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "8585d3cb-f9b8-4d83-a045-2a8b5f741330",
+    "title": "La casa de mis pesadillas",
+    "category": "terror",
+    "filePath": "output\\20260626221047_terror_la-casa-de-mis-pesadillas.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T22:10:16.919Z",
+    "duration": 24,
+    "description": "Descubre el terror que me acechó en una casa abandonada. Suscríbete y no te pierdas la parte 2.",
+    "tags": [
+      "terror",
+      "casa embrujada",
+      "entidades sobrenaturales",
+      "miedo psicológico",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
     "id": "ebfadf09-48a2-4e49-854f-62c65996e002",
     "title": "La noche del terror",
     "category": "historias_reales",

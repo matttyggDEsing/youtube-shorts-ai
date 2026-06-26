@@ -286,11 +286,13 @@ function buildAssFromVtt(vttPath, assPath) {
 function escapeDrawtext(text) {
   return text
     .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
+    .replace(/'/g, "\u2019")  // reemplazar comilla simple con typográfica (evita romper el argumento FFmpeg)
     .replace(/:/g, '\\:')
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]')
-    .replace(/,/g, '\\,');
+    .replace(/,/g, '\\,')
+    .replace(/"/g, '\\"')
+    .replace(/%/g, '\\%');
 }
 
 /**
@@ -564,14 +566,35 @@ async function addSubtitlesFallback(videoPath, vttPath, tempDir) {
  * PASO 6a — Intro con título
  */
 async function createIntro(title, tempDir) {
-  logger.step('Creando intro...');
+  logger.step(`Creando intro con título: "${title}"`);
   const introPath    = path.join(tempDir, 'intro.mp4');
-  const duration     = 1.2;
+  const duration     = 1.8;   // un poco más de tiempo para leer el título
   const W            = VIDEO_CONFIG.width;
   const H            = VIDEO_CONFIG.height;
-  const escapedTitle = escapeDrawtext(title.substring(0, 50));
 
-  const vfFilter = `drawtext=text='${escapedTitle}':fontsize=68:fontcolor=white:borderw=4:bordercolor=black:shadowx=3:shadowy=3:shadowcolor=black@0.7:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t\\,0.25)\\,t/0.25\\,if(lt(t\\,0.95)\\,1\\,(${duration}-t)/0.25))'`;
+  // Dividir título en dos líneas si supera 25 caracteres
+  const MAX_LINE = 25;
+  let line1 = title;
+  let line2 = '';
+  if (title.length > MAX_LINE) {
+    const words = title.split(' ');
+    const mid   = Math.ceil(words.length / 2);
+    line1 = words.slice(0, mid).join(' ');
+    line2 = words.slice(mid).join(' ');
+  }
+
+  const escaped1 = escapeDrawtext(line1.substring(0, 50));
+  const escaped2 = line2 ? escapeDrawtext(line2.substring(0, 50)) : '';
+
+  const fadeIn  = `if(lt(t\\,0.3)\\,t/0.3\\,if(lt(t\\,${duration - 0.3})\\,1\\,(${duration}-t)/0.3))`;
+
+  // Si hay dos líneas, dibujar ambas centradas verticalmente
+  const vfFilter = escaped2
+    ? [
+        `drawtext=text='${escaped1}':fontsize=72:fontcolor=white:borderw=4:bordercolor=black:shadowx=3:shadowy=3:shadowcolor=black@0.7:x=(w-text_w)/2:y=(h/2)-80:alpha='${fadeIn}'`,
+        `drawtext=text='${escaped2}':fontsize=72:fontcolor=white:borderw=4:bordercolor=black:shadowx=3:shadowy=3:shadowcolor=black@0.7:x=(w-text_w)/2:y=(h/2)+10:alpha='${fadeIn}'`,
+      ].join(',')
+    : `drawtext=text='${escaped1}':fontsize=72:fontcolor=white:borderw=4:bordercolor=black:shadowx=3:shadowy=3:shadowcolor=black@0.7:x=(w-text_w)/2:y=(h-text_h)/2:alpha='${fadeIn}'`;
 
   await runFfmpegDirect([
     '-y', '-f', 'lavfi',
@@ -583,7 +606,7 @@ async function createIntro(title, tempDir) {
     introPath,
   ]);
 
-  logger.ok('Intro creada');
+  logger.ok(`Intro creada: "${title}"`);
   return introPath;
 }
 

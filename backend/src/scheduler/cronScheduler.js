@@ -85,7 +85,7 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     // ── PASO 3: Descargar B-roll de Pexels ───────────────────
     emit('images', 45, 'Descargando clips cinematográficos de Pexels...');
     const clipsDir = path.join(tempDir, 'clips');
-    const rawClips = await fetchSceneVideos(story.scenes, clipsDir);
+    const rawClips = await fetchSceneVideos(story.scenes, clipsDir, category);
 
     // ── PASO 4: Montar video ──────────────────────────────────
     emit('video', 70, 'Montando video con efectos y subtítulos...');

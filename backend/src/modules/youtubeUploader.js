@@ -5,7 +5,6 @@
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
-import readline from 'readline';
 import { logger } from '../utils/logger.js';
 
 const CREDENTIALS_PATH = './credentials/credentials.json';
@@ -96,7 +95,7 @@ async function getAuthenticatedClient() {
 }
 
 /**
- * Subir video a YouTube
+ * Subir video a YouTube como Short
  * @param {string} videoPath - Ruta al archivo MP4
  * @param {Object} options - Metadatos del video
  * @returns {Promise<{videoId: string, url: string}>}
@@ -114,21 +113,33 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
   const fileSize = fs.statSync(videoPath).size;
   logger.info(`Tamaño del video: ${(fileSize / 1024 / 1024).toFixed(1)} MB`);
 
+  // ── Forzar clasificación como Short ──────────────────────────
+  // YouTube requiere #Shorts en título o descripción para clasificarlo correctamente
+  const shortsTitle = title.endsWith('#Shorts')
+    ? title.substring(0, 100)
+    : `${title} #Shorts`.substring(0, 100);
+
+  const shortsDescription = description
+    ? (description.includes('#Shorts') ? description : `${description}\n\n#Shorts`)
+    : '#Shorts';
+
+  const shortsTags = [...new Set([...(tags || []), 'shorts', 'Shorts', 'YouTubeShorts'])];
+
   const response = await youtube.videos.insert({
     part: ['snippet', 'status'],
     requestBody: {
       snippet: {
-        title: title.substring(0, 100), // YouTube limita a 100 chars
-        description: description || '',
-        tags: tags || [],
-        categoryId: categoryId, // 24 = Entertainment
-        defaultLanguage: 'es',
+        title:                shortsTitle,
+        description:          shortsDescription,
+        tags:                 shortsTags,
+        categoryId:           categoryId, // 24 = Entertainment
+        defaultLanguage:      'es',
         defaultAudioLanguage: 'es',
       },
       status: {
-        privacyStatus: 'public',
-        selfDeclaredMadeForKids: false,
-        madeForKids: false,
+        privacyStatus:              'public',
+        selfDeclaredMadeForKids:    false,
+        madeForKids:                false,
       },
     },
     media: {
@@ -139,7 +150,7 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
   const videoId = response.data.id;
   const url = `https://youtu.be/${videoId}`;
 
-  logger.ok(`Video subido exitosamente: ${url}`);
+  logger.ok(`Short subido exitosamente: ${url}`);
 
   return { videoId, url };
 }
@@ -164,7 +175,6 @@ export async function checkYoutubeStatus() {
     const auth = await getAuthenticatedClient();
     const youtube = google.youtube({ version: 'v3', auth });
 
-    // Verificar que el token funciona consultando el canal
     await youtube.channels.list({ part: ['snippet'], mine: true });
 
     return { connected: true };
