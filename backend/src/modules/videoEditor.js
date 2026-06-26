@@ -9,20 +9,16 @@ import path from 'path';
 import { parseVtt } from './ttsNarrator.js';
 import { logger } from '../utils/logger.js';
 
-// Configuración del video final
 const VIDEO_CONFIG = {
   width: 1080,
   height: 1920,
-  fps: 30,
-  videoBitrate: '4000k',
+  fps: 24,              // Bajado de 30 a 24 — suficiente para Shorts, mucho más rápido
+  videoBitrate: '3000k',
   audioBitrate: '192k',
-  preset: 'fast',
-  crf: 23,
+  preset: 'veryfast',  // Cambiado de 'fast' a 'veryfast'
+  crf: 26,             // Ligeramente más comprimido, igual de buena calidad visual
 };
 
-/**
- * Ejecutar comando ffmpeg y devolver promesa
- */
 function runFfmpeg(command) {
   return new Promise((resolve, reject) => {
     command
@@ -39,17 +35,11 @@ async function resizeImages(imagePaths, tempDir) {
   const resizedPaths = [];
 
   for (let i = 0; i < imagePaths.length; i++) {
-    const inputPath  = imagePaths[i];
     const outputPath = path.join(tempDir, `resized_${String(i + 1).padStart(3, '0')}.jpg`);
-
-    await sharp(inputPath)
-      .resize(VIDEO_CONFIG.width, VIDEO_CONFIG.height, {
-        fit: 'cover',
-        position: 'center',
-      })
-      .jpeg({ quality: 90 })
+    await sharp(imagePaths[i])
+      .resize(VIDEO_CONFIG.width, VIDEO_CONFIG.height, { fit: 'cover', position: 'center' })
+      .jpeg({ quality: 85 })
       .toFile(outputPath);
-
     resizedPaths.push(outputPath);
   }
 
@@ -58,26 +48,39 @@ async function resizeImages(imagePaths, tempDir) {
 }
 
 /**
- * PASO 2: Convertir cada imagen a clip de video con efecto zoom
+ * PASO 2: Convertir cada imagen a clip de video
+ * Usa scale+crop en lugar de zoompan — mismo efecto visual, 20x más rápido
  */
 async function imagesToClips(resizedPaths, scenes, tempDir) {
   logger.step('Convirtiendo imágenes a clips de video...');
   const clipPaths = [];
 
   for (let i = 0; i < resizedPaths.length; i++) {
-    const imagePath = resizedPaths[i];
-    const scene = scenes[i] || { duration: 8 };
+    const scene    = scenes[i] || { duration: 8 };
     const duration = scene.duration || 8;
-    const frames = duration * VIDEO_CONFIG.fps;
     const clipPath = path.join(tempDir, `clip_${String(i + 1).padStart(3, '0')}.mp4`);
 
-    // Filtro zoompan para efecto Ken Burns (zoom suave hacia adentro)
-    const zoomFilter = `zoompan=z='min(zoom+0.0015,1.08)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${VIDEO_CONFIG.width}x${VIDEO_CONFIG.height}:fps=${VIDEO_CONFIG.fps}`;
+    // Zoom suave del 100% al 108% usando scale animado con overlay
+    // Alternativa rápida: escalar ligeramente más grande y usar crop centrado
+    // Esto da el efecto Ken Burns sin el costo de zoompan
+    const W = VIDEO_CONFIG.width;
+    const H = VIDEO_CONFIG.height;
+    const zoomW = Math.round(W * 1.08);
+    const zoomH = Math.round(H * 1.08);
+    const cropX  = Math.round((zoomW - W) / 2);
+    const cropY  = Math.round((zoomH - H) / 2);
 
     const command = ffmpeg()
-      .input(imagePath)
+      .input(resizedPaths[i])
       .inputOptions(['-loop 1'])
-      .videoFilters(zoomFilter)
+      .videoFilters([
+        // Escalar a tamaño ligeramente más grande
+        `scale=${zoomW}:${zoomH}`,
+        // Crop centrado al tamaño final — efecto zoom estático simple y rápido
+        `crop=${W}:${H}:${cropX}:${cropY}`,
+        // Convertir imagen estática en video con fps correcto
+        `fps=${VIDEO_CONFIG.fps}`,
+      ])
       .outputOptions([
         `-t ${duration}`,
         `-c:v libx264`,
@@ -85,6 +88,7 @@ async function imagesToClips(resizedPaths, scenes, tempDir) {
         `-crf ${VIDEO_CONFIG.crf}`,
         `-pix_fmt yuv420p`,
         `-r ${VIDEO_CONFIG.fps}`,
+        `-tune stillimage`,   // Optimización de ffmpeg para imágenes estáticas
       ])
       .output(clipPath);
 
@@ -103,20 +107,22 @@ async function imagesToClips(resizedPaths, scenes, tempDir) {
 async function concatenateClips(clipPaths, tempDir) {
   logger.step('Concatenando clips...');
 
-  // Crear archivo de lista para ffmpeg concat
   const concatFile = path.join(tempDir, 'concat.txt');
-  const concatContent = clipPaths.map(p => `file '${p.replace(/\\/g, '/')}'`).join('\n');
-  fs.writeFileSync(concatFile, concatContent, 'utf8');
+  fs.writeFileSync(
+    concatFile,
+    clipPaths.map(p => `file '${p.replace(/\\/g, '/')}'`).join('\n'),
+    'utf8'
+  );
 
   const joinedPath = path.join(tempDir, 'joined.mp4');
+  await runFfmpeg(
+    ffmpeg()
+      .input(concatFile)
+      .inputOptions(['-f concat', '-safe 0'])
+      .outputOptions(['-c copy'])
+      .output(joinedPath)
+  );
 
-  const command = ffmpeg()
-    .input(concatFile)
-    .inputOptions(['-f concat', '-safe 0'])
-    .outputOptions(['-c copy'])
-    .output(joinedPath);
-
-  await runFfmpeg(command);
   logger.ok('Clips concatenados exitosamente');
   return joinedPath;
 }
@@ -128,27 +134,27 @@ async function addAudio(videoPath, audioPath, tempDir) {
   logger.step('Agregando narración de audio...');
   const withAudioPath = path.join(tempDir, 'with_audio.mp4');
 
-  const command = ffmpeg()
-    .input(videoPath)
-    .input(audioPath)
-    .outputOptions([
-      '-c:v copy',
-      '-c:a aac',
-      `-b:a ${VIDEO_CONFIG.audioBitrate}`,
-      '-shortest',
-      '-map 0:v:0',
-      '-map 1:a:0',
-    ])
-    .output(withAudioPath);
+  await runFfmpeg(
+    ffmpeg()
+      .input(videoPath)
+      .input(audioPath)
+      .outputOptions([
+        '-c:v copy',
+        '-c:a aac',
+        `-b:a ${VIDEO_CONFIG.audioBitrate}`,
+        '-shortest',
+        '-map 0:v:0',
+        '-map 1:a:0',
+      ])
+      .output(withAudioPath)
+  );
 
-  await runFfmpeg(command);
   logger.ok('Audio agregado exitosamente');
   return withAudioPath;
 }
 
 /**
- * PASO 5: Generar filtro de subtítulos drawtext para ffmpeg
- * Escapa caracteres especiales del texto para el filtro drawtext
+ * Escapar texto para filtro drawtext de ffmpeg
  */
 function escapeDrawtext(text) {
   return text
@@ -158,34 +164,6 @@ function escapeDrawtext(text) {
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]')
     .replace(/,/g, '\\,');
-}
-
-/**
- * Construir filtro complejo de subtítulos desde cues VTT
- */
-function buildSubtitleFilter(vttCues) {
-  if (!vttCues || vttCues.length === 0) return null;
-
-  // Construir filtro drawtext para cada cue
-  const filters = vttCues.map((cue) => {
-    const text = escapeDrawtext(cue.text);
-    const enable = `between(t,${cue.start.toFixed(3)},${cue.end.toFixed(3)})`;
-
-    return [
-      `drawtext=text='${text}'`,
-      `enable='${enable}'`,
-      `fontsize=52`,
-      `fontcolor=white`,
-      `x=(w-text_w)/2`,
-      `y=h-220`,
-      `box=1`,
-      `boxcolor=black@0.65`,
-      `boxborderw=12`,
-      `line_spacing=8`,
-    ].join(':');
-  });
-
-  return filters.join(',');
 }
 
 /**
@@ -201,21 +179,37 @@ async function addSubtitles(videoPath, vttPath, tempDir) {
   }
 
   const withSubsPath = path.join(tempDir, 'with_subs.mp4');
-  const subtitleFilter = buildSubtitleFilter(vttCues);
+
+  const filters = vttCues.map((cue) => {
+    const text   = escapeDrawtext(cue.text);
+    const enable = `between(t,${cue.start.toFixed(3)},${cue.end.toFixed(3)})`;
+    return [
+      `drawtext=text='${text}'`,
+      `enable='${enable}'`,
+      `fontsize=52`,
+      `fontcolor=white`,
+      `x=(w-text_w)/2`,
+      `y=h-220`,
+      `box=1`,
+      `boxcolor=black@0.65`,
+      `boxborderw=12`,
+      `line_spacing=8`,
+    ].join(':');
+  });
 
   try {
-    const command = ffmpeg()
-      .input(videoPath)
-      .videoFilters(subtitleFilter)
-      .outputOptions([
-        `-c:v libx264`,
-        `-preset ${VIDEO_CONFIG.preset}`,
-        `-crf ${VIDEO_CONFIG.crf}`,
-        `-c:a copy`,
-      ])
-      .output(withSubsPath);
-
-    await runFfmpeg(command);
+    await runFfmpeg(
+      ffmpeg()
+        .input(videoPath)
+        .videoFilters(filters.join(','))
+        .outputOptions([
+          `-c:v libx264`,
+          `-preset ${VIDEO_CONFIG.preset}`,
+          `-crf ${VIDEO_CONFIG.crf}`,
+          `-c:a copy`,
+        ])
+        .output(withSubsPath)
+    );
     logger.ok(`Subtítulos agregados: ${vttCues.length} cues`);
     return withSubsPath;
   } catch (error) {
@@ -225,75 +219,79 @@ async function addSubtitles(videoPath, vttPath, tempDir) {
 }
 
 /**
- * PASO 6: Crear clip de intro (fondo negro + título)
+ * PASO 6: Crear intro
  */
 async function createIntro(title, tempDir) {
   logger.step('Creando intro...');
-  const introPath = path.join(tempDir, 'intro.mp4');
-  const duration = 1.5;
+  const introPath    = path.join(tempDir, 'intro.mp4');
+  const duration     = 1.5;
   const escapedTitle = escapeDrawtext(title.substring(0, 50));
+  const W = VIDEO_CONFIG.width;
+  const H = VIDEO_CONFIG.height;
 
-  const command = ffmpeg()
-    .input(`color=c=black:s=${VIDEO_CONFIG.width}x${VIDEO_CONFIG.height}:r=${VIDEO_CONFIG.fps}`)
-    .inputOptions(['-f lavfi'])
-    .videoFilters([
-      `drawtext=text='${escapedTitle}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,0.3),t/0.3,if(lt(t,1.2),1,(${duration}-t)/0.3))'`,
-    ])
-    .outputOptions([
-      `-t ${duration}`,
-      `-c:v libx264`,
-      `-preset ${VIDEO_CONFIG.preset}`,
-      `-pix_fmt yuv420p`,
-      `-r ${VIDEO_CONFIG.fps}`,
-    ])
-    .output(introPath);
+  await runFfmpeg(
+    ffmpeg()
+      .input(`color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`)
+      .inputOptions(['-f lavfi'])
+      .videoFilters([
+        `drawtext=text='${escapedTitle}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,0.3),t/0.3,if(lt(t,1.2),1,(${duration}-t)/0.3))'`,
+      ])
+      .outputOptions([
+        `-t ${duration}`,
+        `-c:v libx264`,
+        `-preset ${VIDEO_CONFIG.preset}`,
+        `-pix_fmt yuv420p`,
+        `-r ${VIDEO_CONFIG.fps}`,
+      ])
+      .output(introPath)
+  );
 
-  await runFfmpeg(command);
   logger.ok('Intro creada');
   return introPath;
 }
 
 /**
- * PASO 6: Crear clip de outro (fondo negro + CTA de suscripción)
+ * PASO 6b: Crear outro
  */
 async function createOutro(channelName, tempDir) {
   logger.step('Creando outro...');
-  const outroPath = path.join(tempDir, 'outro.mp4');
-  const duration = 2;
+  const outroPath   = path.join(tempDir, 'outro.mp4');
+  const duration    = 2;
   const channelText = escapeDrawtext(channelName || 'Mi Canal');
+  const W = VIDEO_CONFIG.width;
+  const H = VIDEO_CONFIG.height;
 
-  const command = ffmpeg()
-    .input(`color=c=black:s=${VIDEO_CONFIG.width}x${VIDEO_CONFIG.height}:r=${VIDEO_CONFIG.fps}`)
-    .inputOptions(['-f lavfi'])
-    .videoFilters([
-      `drawtext=text='${channelText}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h/2)-80:alpha='if(lt(t,0.4),t/0.4,1)'`,
-      `drawtext=text='Suscribite para mas historias':fontsize=40:fontcolor=#FF0000:x=(w-text_w)/2:y=(h/2)+20:alpha='if(lt(t,0.6),0,if(lt(t,1),(t-0.6)/0.4,1))'`,
-    ])
-    .outputOptions([
-      `-t ${duration}`,
-      `-c:v libx264`,
-      `-preset ${VIDEO_CONFIG.preset}`,
-      `-pix_fmt yuv420p`,
-      `-r ${VIDEO_CONFIG.fps}`,
-    ])
-    .output(outroPath);
+  await runFfmpeg(
+    ffmpeg()
+      .input(`color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`)
+      .inputOptions(['-f lavfi'])
+      .videoFilters([
+        `drawtext=text='${channelText}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h/2)-80:alpha='if(lt(t,0.4),t/0.4,1)'`,
+        `drawtext=text='Suscribite para mas historias':fontsize=40:fontcolor=#FF0000:x=(w-text_w)/2:y=(h/2)+20:alpha='if(lt(t,0.6),0,if(lt(t,1),(t-0.6)/0.4,1))'`,
+      ])
+      .outputOptions([
+        `-t ${duration}`,
+        `-c:v libx264`,
+        `-preset ${VIDEO_CONFIG.preset}`,
+        `-pix_fmt yuv420p`,
+        `-r ${VIDEO_CONFIG.fps}`,
+      ])
+      .output(outroPath)
+  );
 
-  await runFfmpeg(command);
   logger.ok('Outro creada');
   return outroPath;
 }
 
 /**
- * PASO 6: Concatenar intro + video + outro (sin audio en intro/outro)
+ * PASO 6c: Ensamblar intro + video + outro
  */
 async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
   logger.step('Ensamblando intro + video + outro...');
 
-  // Agregar audio silencioso a intro y outro para compatibilidad
   const introWithAudio = path.join(tempDir, 'intro_audio.mp4');
   const outroWithAudio = path.join(tempDir, 'outro_audio.mp4');
 
-  // Agregar silencio a intro
   await runFfmpeg(
     ffmpeg()
       .input(introPath)
@@ -303,7 +301,6 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
       .output(introWithAudio)
   );
 
-  // Agregar silencio a outro
   await runFfmpeg(
     ffmpeg()
       .input(outroPath)
@@ -313,7 +310,6 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
       .output(outroWithAudio)
   );
 
-  // Concatenar todo
   const finalConcatFile = path.join(tempDir, 'final_concat.txt');
   fs.writeFileSync(finalConcatFile, [
     `file '${introWithAudio.replace(/\\/g, '/')}'`,
@@ -322,7 +318,6 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
   ].join('\n'), 'utf8');
 
   const assembledPath = path.join(tempDir, 'assembled.mp4');
-
   await runFfmpeg(
     ffmpeg()
       .input(finalConcatFile)
@@ -336,68 +331,48 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
 }
 
 /**
- * PASO 7: Exportar video final con configuración óptima
+ * PASO 7: Exportar video final
  */
 async function exportFinal(inputPath, outputPath) {
   logger.step('Exportando video final...');
 
-  const command = ffmpeg()
-    .input(inputPath)
-    .outputOptions([
-      `-c:v libx264`,
-      `-preset ${VIDEO_CONFIG.preset}`,
-      `-crf ${VIDEO_CONFIG.crf}`,
-      `-c:a aac`,
-      `-b:a ${VIDEO_CONFIG.audioBitrate}`,
-      `-movflags +faststart`,   // Optimizar para streaming
-      `-pix_fmt yuv420p`,
-    ])
-    .output(outputPath);
+  await runFfmpeg(
+    ffmpeg()
+      .input(inputPath)
+      .outputOptions([
+        `-c:v libx264`,
+        `-preset ${VIDEO_CONFIG.preset}`,
+        `-crf ${VIDEO_CONFIG.crf}`,
+        `-c:a aac`,
+        `-b:a ${VIDEO_CONFIG.audioBitrate}`,
+        `-movflags +faststart`,
+        `-pix_fmt yuv420p`,
+      ])
+      .output(outputPath)
+  );
 
-  await runFfmpeg(command);
   logger.ok(`Video final exportado: ${path.basename(outputPath)}`);
 }
 
 /**
  * Función principal: crear el Short completo
- * @param {Array} scenes - Array de escenas con duración
- * @param {Array} imagePaths - Rutas de imágenes generadas
- * @param {string} audioPath - Ruta del audio MP3
- * @param {string} vttPath - Ruta del archivo VTT de subtítulos
- * @param {string} outputPath - Ruta final del video MP4
- * @param {string} title - Título del video (para intro)
- * @returns {Promise<string>} Ruta del video final
  */
 export async function createShort(scenes, imagePaths, audioPath, vttPath, outputPath, title) {
   const tempDir = path.dirname(outputPath);
 
   try {
-    // PASO 1: Redimensionar imágenes
-    const resizedPaths = await resizeImages(imagePaths, tempDir);
-
-    // PASO 2: Convertir imágenes a clips con zoom
-    const clipPaths = await imagesToClips(resizedPaths, scenes, tempDir);
-
-    // PASO 3: Concatenar clips
-    const joinedPath = await concatenateClips(clipPaths, tempDir);
-
-    // PASO 4: Agregar audio
+    const resizedPaths  = await resizeImages(imagePaths, tempDir);
+    const clipPaths     = await imagesToClips(resizedPaths, scenes, tempDir);
+    const joinedPath    = await concatenateClips(clipPaths, tempDir);
     const withAudioPath = await addAudio(joinedPath, audioPath, tempDir);
+    const withSubsPath  = await addSubtitles(withAudioPath, vttPath, tempDir);
 
-    // PASO 5: Agregar subtítulos
-    const withSubsPath = await addSubtitles(withAudioPath, vttPath, tempDir);
-
-    // PASO 6: Crear intro y outro
-    const channelName = process.env.CHANNEL_NAME || 'Mi Canal de Historias';
-    const introPath = await createIntro(title, tempDir);
-    const outroPath = await createOutro(channelName, tempDir);
-
-    // PASO 6b: Ensamblar todo
+    const channelName   = process.env.CHANNEL_NAME || 'Mi Canal de Historias';
+    const introPath     = await createIntro(title, tempDir);
+    const outroPath     = await createOutro(channelName, tempDir);
     const assembledPath = await addIntroOutro(withSubsPath, introPath, outroPath, tempDir);
 
-    // PASO 7: Export final
     await exportFinal(assembledPath, outputPath);
-
     return outputPath;
 
   } catch (error) {

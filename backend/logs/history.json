@@ -1,5 +1,123 @@
 [
   {
+    "id": "d3e1637d-5122-481f-a6eb-6405e86a3a5c",
+    "title": "Despertar en el Fin",
+    "category": "ciencia_ficcion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T01:43:11.220Z",
+    "duration": 0
+  },
+  {
+    "id": "1921c4a2-381b-43f3-8572-675edc44f9a2",
+    "title": "Mundo en Ruinas",
+    "category": "ciencia_ficcion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T01:37:49.768Z",
+    "duration": 0
+  },
+  {
+    "id": "e9d3bf91-bec6-44ca-b7c4-2a7e410cc77c",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T01:29:17.943Z",
+    "duration": 19,
+    "error": "Error en montaje de video: imagePaths is not defined"
+  },
+  {
+    "id": "9aa2d653-6e75-4787-8a2d-b4a10606fce1",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T01:00:14.892Z",
+    "duration": 0
+  },
+  {
+    "id": "71c25ba1-72ea-466f-a8c2-28f708e8ab27",
+    "title": "La Casa de las Sombras",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:57:05.186Z",
+    "duration": 22,
+    "error": "Error en montaje de video: Input file has corrupt header: VipsJpeg: Premature end of input file"
+  },
+  {
+    "id": "8bce8d19-d0e1-422e-b4ee-5d92620d5904",
+    "title": "La Casa del Abismo",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:53:54.327Z",
+    "duration": 0,
+    "error": "Error en TTS: No audio data received"
+  },
+  {
+    "id": "b3198bcf-c0d1-4e41-a1c7-d09f754e50a3",
+    "title": "La casa de los susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:49:50.368Z",
+    "duration": 0,
+    "error": "Error en TTS: El stream de audio no devolvió datos"
+  },
+  {
+    "id": "bd7f1fce-0b89-4cf6-a2b0-5fc49cb738ab",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:47:59.687Z",
+    "duration": 0,
+    "error": "Error en TTS: ffprobe error: ffprobe exited with code 1\nffprobe version N-125299-gb2b37802a9-20260625 Copyright (c) 2007-2026 the FFmpeg developers\r\n  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)\r\n  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --disable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260625\r\n  libavutil      61.  0.100 / 61.  0.100\r\n  libavcodec     63.  0.100 / 63.  0.100\r\n  libavformat    63.  0.100 / 63.  0.100\r\n  libavdevice    63.  0.100 / 63.  0.100\r\n  libavfilter    12.  0.100 / 12.  0.100\r\n  libswscale     10.  0.100 / 10.  0.100\r\n  libswresample   7.  0.100 /  7.  0.100\r\n[mp3 @ 000001c698735100] Format mp3 detected only with low score of 1, misdetection possible!\r\n[mp3 @ 000001c698735100] Failed to find two consecutive MPEG audio frames.\r\ntemp\\bd7f1fce-0b89-4cf6-a2b0-5fc49cb738ab\\narration.mp3: Invalid data found when processing input\r\n"
+  },
+  {
+    "id": "0a385f8e-e7d6-4704-92fe-8146fb53e94c",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:43:50.318Z",
+    "duration": 0,
+    "error": "Error en TTS: Cannot read properties of undefined (reading 'on')"
+  },
+  {
+    "id": "c9b016b6-fffb-409e-9229-56f4132b46ab",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:41:59.141Z",
+    "duration": 0,
+    "error": "Error en TTS: Connect Error: [object Object]"
+  },
+  {
+    "id": "d860bc72-4415-480c-8eaa-21c7e01c582b",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:39:26.904Z",
+    "duration": 0,
+    "error": "Error en TTS: undefined"
+  },
+  {
     "id": "66d1b841-5dd0-4659-9b5b-96bf3724265d",
     "title": "La casa de mis pesadillas",
     "category": "terror",

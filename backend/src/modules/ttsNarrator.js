@@ -30,7 +30,7 @@ function getAudioDuration(audioPath) {
 
 /**
  * Generar narración de texto a voz con msedge-tts
- * @param {string} text - Texto a narrar
+ * @param {string} text - Texto a narrar (texto plano, sin SSML)
  * @param {string} outputPath - Ruta base donde guardar (sin extensión)
  * @param {string} voice - Nombre de la voz (ej: "es-AR-ElenaNeural")
  * @returns {Promise<{audioPath, vttPath, durationSeconds}>}
@@ -43,51 +43,32 @@ export async function generateNarration(text, outputPath, voice = 'es-AR-ElenaNe
 
   const audioPath = `${outputPath}.mp3`;
   const vttPath   = `${outputPath}.vtt`;
+  const outputDir = path.dirname(outputPath);
+  const outputFilename = path.basename(outputPath);
 
   logger.step(`Generando narración con voz "${voice}"...`);
 
   try {
     const tts = new MsEdgeTTS();
+    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
 
-    // Configurar voz con opciones de prosodia para narración dramática
-    await tts.setMetadata(
-      voice,
-      OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-      `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es">
-        <voice name="${voice}">
-          <prosody rate="-5%" pitch="-5Hz">
-            ${text}
-          </prosody>
-        </voice>
-      </speak>`
-    );
+    // Usar texto plano — toFile con SSML no devuelve datos en esta versión
+    const { audioFilePath } = await tts.toFile(outputDir, text, outputFilename);
 
-    // Generar audio y metadatos de palabras (para subtítulos)
-    const { audioStream, wordBoundaryStream } = tts.toStream();
-
-    // Guardar audio
-    const audioWriteStream = fs.createWriteStream(audioPath);
-    await new Promise((resolve, reject) => {
-      audioStream.pipe(audioWriteStream);
-      audioWriteStream.on('finish', resolve);
-      audioWriteStream.on('error', reject);
-      audioStream.on('error', reject);
-    });
-
-    // Recopilar word boundaries para VTT
-    const wordBoundaries = [];
-    await new Promise((resolve) => {
-      wordBoundaryStream.on('data', (data) => wordBoundaries.push(data));
-      wordBoundaryStream.on('end', resolve);
-      wordBoundaryStream.on('error', () => resolve()); // no bloquear si falla
-    });
-
-    // Generar VTT desde word boundaries
-    if (wordBoundaries.length > 0) {
-      generateVttFromBoundaries(wordBoundaries, vttPath);
-    } else {
-      await generateBasicVtt(text, audioPath, vttPath);
+    // Renombrar si el path devuelto no coincide con el esperado
+    const resolvedAudio = audioFilePath ?? path.join(outputDir, outputFilename + '.mp3');
+    if (resolvedAudio !== audioPath && fs.existsSync(resolvedAudio)) {
+      fs.renameSync(resolvedAudio, audioPath);
     }
+
+    if (!fs.existsSync(audioPath) || fs.statSync(audioPath).size === 0) {
+      throw new Error('El archivo de audio generado está vacío o no existe');
+    }
+
+    logger.ok(`Audio guardado: ${path.basename(audioPath)} (${fs.statSync(audioPath).size} bytes)`);
+
+    // Generar VTT por duración
+    await generateBasicVtt(text, audioPath, vttPath);
 
     const durationSeconds = await getAudioDuration(audioPath);
     logger.ok(`Narración generada: ${durationSeconds.toFixed(1)}s → ${path.basename(audioPath)}`);
@@ -95,43 +76,13 @@ export async function generateNarration(text, outputPath, voice = 'es-AR-ElenaNe
     return { audioPath, vttPath, durationSeconds };
 
   } catch (error) {
-    throw new Error(`Error en TTS: ${error.message}`);
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Error en TTS: ${msg}`);
   }
 }
 
 /**
- * Generar VTT desde word boundary events de msedge-tts
- * Cada evento tiene: { text, offset, duration } (offset en nanosegundos)
- */
-function generateVttFromBoundaries(boundaries, vttPath) {
-  const chunkSize = 5; // palabras por cue
-  let vttContent = 'WEBVTT\n\n';
-  let cueIndex = 1;
-
-  for (let i = 0; i < boundaries.length; i += chunkSize) {
-    const chunk = boundaries.slice(i, i + chunkSize);
-    const startNs = chunk[0].offset;
-    const lastItem = chunk[chunk.length - 1];
-    const endNs = lastItem.offset + (lastItem.duration || 500_000_000); // fallback 0.5s
-
-    // Convertir nanosegundos a segundos
-    const startSec = startNs / 10_000_000;
-    const endSec   = endNs   / 10_000_000;
-
-    const words = chunk.map(b => b.text).join(' ');
-
-    vttContent += `${cueIndex}\n`;
-    vttContent += `${formatVttTime(startSec)} --> ${formatVttTime(endSec)}\n`;
-    vttContent += `${words}\n\n`;
-    cueIndex++;
-  }
-
-  fs.writeFileSync(vttPath, vttContent, 'utf8');
-  logger.ok(`VTT generado desde word boundaries: ${cueIndex - 1} cues`);
-}
-
-/**
- * VTT básico si no hay word boundaries disponibles
+ * VTT básico calculando tiempos por duración del audio
  */
 async function generateBasicVtt(text, audioPath, vttPath) {
   try {
