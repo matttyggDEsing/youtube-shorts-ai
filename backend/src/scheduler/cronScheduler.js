@@ -1,5 +1,5 @@
 // ════════════════════════════════════════
-// CRON SCHEDULER — Publicación automática con node-cron
+// CRON SCHEDULER v2 — Pipeline con B-roll real de Pexels
 // ════════════════════════════════════════
 
 import cron from 'node-cron';
@@ -7,7 +7,7 @@ import fs from 'fs';
 import { logger } from '../utils/logger.js';
 import { generateStory } from '../modules/storyGenerator.js';
 import { generateNarration } from '../modules/ttsNarrator.js';
-import { generateSceneImages } from '../modules/imageGenerator.js';
+import { fetchSceneVideos } from '../modules/videoFetcher.js';     // ← NUEVO
 import { createShort } from '../modules/videoEditor.js';
 import { uploadToYoutube, hasValidToken } from '../modules/youtubeUploader.js';
 import { generateOutputFilename, saveToHistory, cleanTempDir } from '../utils/fileManager.js';
@@ -15,13 +15,8 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
 const CONFIG_PATH = './config.json';
-
-// Instancia activa del cron task
 let activeTask = null;
 
-/**
- * Leer configuración del scheduler
- */
 function readConfig() {
   try {
     if (!fs.existsSync(CONFIG_PATH)) {
@@ -42,20 +37,15 @@ function readConfig() {
   }
 }
 
-/**
- * Guardar configuración actualizada
- */
 function writeConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
 /**
- * Pipeline completo de generación (usado por cron y por la ruta manual)
- * @param {Object} options - { category, voice, autoUpload, onProgress }
- * @returns {Promise<Object>} Resultado del pipeline
+ * Pipeline completo: historia → TTS → B-roll Pexels → video → (upload)
  */
 export async function runPipeline({ category, voice, autoUpload = false, onProgress = null }) {
-  const id = uuidv4();
+  const id      = uuidv4();
   const tempDir = `./temp/${id}`;
   fs.mkdirSync(tempDir, { recursive: true });
 
@@ -76,10 +66,9 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
   };
 
   try {
-    // ── PASO 1: Generar historia ──────────────────────────────
+    // ── PASO 1: Generar historia con Groq ────────────────────
     emit('story', 10, 'Generando historia con IA...');
-    const story = await generateStory(category, 60);
-
+    const story = await generateStory(category, 55);
     historyEntry.title = story.title;
     saveToHistory(historyEntry);
 
@@ -93,19 +82,19 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     );
     historyEntry.duration = Math.round(durationSeconds);
 
-    // ── PASO 3: Generar imágenes ──────────────────────────────
-    emit('images', 45, 'Generando imágenes para cada escena...');
-    const imagesDir = path.join(tempDir, 'images');
-    const imagePaths = await generateSceneImages(story.scenes, imagesDir);
+    // ── PASO 3: Descargar B-roll de Pexels ───────────────────
+    emit('images', 45, 'Descargando clips cinematográficos de Pexels...');
+    const clipsDir = path.join(tempDir, 'clips');
+    const rawClips = await fetchSceneVideos(story.scenes, clipsDir);
 
     // ── PASO 4: Montar video ──────────────────────────────────
     emit('video', 70, 'Montando video con efectos y subtítulos...');
     const outputFilename = generateOutputFilename(category, story.title);
-    const outputPath = path.join(process.env.OUTPUT_DIR || './output', outputFilename);
+    const outputPath     = path.join(process.env.OUTPUT_DIR || './output', outputFilename);
 
     await createShort(
       story.scenes,
-      imagePaths,
+      rawClips,      // ← clips reales en lugar de imagePaths
       audioPath,
       vttPath,
       outputPath,
@@ -113,145 +102,111 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     );
 
     historyEntry.filePath = outputPath;
-    historyEntry.status = 'local';
+    historyEntry.status   = 'local';
+    historyEntry.description = story.description;
+    historyEntry.tags        = story.tags;
     saveToHistory(historyEntry);
 
     // ── PASO 5: Subir a YouTube (opcional) ───────────────────
     if (autoUpload && hasValidToken()) {
       emit('upload', 88, 'Subiendo a YouTube...');
-      const { videoId, url } = await uploadToYoutube(outputPath, {
-        title: story.title,
-        description: story.description,
-        tags: story.tags,
-        categoryId: '24',
-      });
-
-      historyEntry.youtubeUrl = url;
-      historyEntry.youtubeId = videoId;
-      historyEntry.status = 'uploaded';
-      saveToHistory(historyEntry);
-
-      emit('done', 100, '¡Video subido a YouTube!', { url, id });
-    } else {
-      if (autoUpload && !hasValidToken()) {
-        logger.warn('autoUpload activado pero no hay token de YouTube. Video guardado localmente.');
+      try {
+        const { videoId, url } = await uploadToYoutube(outputPath, {
+          title:       story.title,
+          description: story.description || `${story.title} #Shorts`,
+          tags:        story.tags || ['shorts', 'historias'],
+          categoryId:  '24',
+        });
+        historyEntry.youtubeUrl = url;
+        historyEntry.youtubeId  = videoId;
+        historyEntry.status     = 'uploaded';
+        saveToHistory(historyEntry);
+      } catch (uploadError) {
+        logger.warn(`Error al subir a YouTube: ${uploadError.message}`);
+        // No fallar el pipeline si solo falla el upload
       }
-      emit('done', 100, '¡Video generado exitosamente!', { id, filePath: outputPath });
     }
 
-    // Limpiar temp después del éxito
-    await cleanTempDir(tempDir);
+    // ── Limpiar temp ──────────────────────────────────────────
+    try { cleanTempDir(tempDir); } catch { /* no crítico */ }
 
-    return {
-      success: true,
-      id,
-      title: story.title,
-      filePath: outputPath,
-      youtubeUrl: historyEntry.youtubeUrl,
-      duration: historyEntry.duration,
-    };
+    emit('done', 100, '¡Short listo!', {
+      videoPath:  outputPath,
+      url:        historyEntry.youtubeUrl,
+      title:      story.title,
+      durationSeconds,
+    });
+
+    return historyEntry;
 
   } catch (error) {
-    logger.error(`Pipeline falló: ${error.message}`);
     historyEntry.status = 'failed';
-    historyEntry.error = error.message;
+    historyEntry.error  = error.message;
     saveToHistory(historyEntry);
 
-    emit('error', 0, `Error: ${error.message}`, { error: error.message });
-
-    // Limpiar temp también en error
-    try { await cleanTempDir(tempDir); } catch {}
+    try { cleanTempDir(tempDir); } catch { /* no crítico */ }
 
     throw error;
   }
 }
 
-/**
- * Iniciar el scheduler de publicación automática
- */
+export function getSchedulerStatus() {
+  const cfg = readConfig();
+  return {
+    enabled:          cfg.enabled,
+    cronExpression:   cfg.cronExpression,
+    categoryRotation: cfg.categoryRotation,
+    currentIndex:     cfg.currentIndex,
+    autoUpload:       cfg.autoUpload,
+    voice:            cfg.voice,
+    nextRun:          activeTask ? 'programado' : 'inactivo',
+  };
+}
+
+export function updateConfig(newConfig) {
+  const cfg = { ...readConfig(), ...newConfig };
+  writeConfig(cfg);
+  startScheduler(); // reiniciar con nueva config
+  return getSchedulerStatus();
+}
+
 export function startScheduler() {
-  const config = readConfig();
-
-  if (!config.enabled) {
-    logger.info('Scheduler desactivado en config.json');
-    return;
-  }
-
   if (activeTask) {
-    activeTask.destroy();
+    activeTask.stop();
     activeTask = null;
   }
 
-  if (!cron.validate(config.cronExpression)) {
-    logger.error(`Expresión cron inválida: ${config.cronExpression}`);
+  const cfg = readConfig();
+  if (!cfg.enabled || !cfg.cronExpression) {
+    logger.info('Scheduler desactivado.');
     return;
   }
 
-  logger.ok(`Scheduler activado: "${config.cronExpression}"`);
+  if (!cron.validate(cfg.cronExpression)) {
+    logger.warn(`Expresión cron inválida: ${cfg.cronExpression}`);
+    return;
+  }
 
-  activeTask = cron.schedule(config.cronExpression, async () => {
-    const cfg = readConfig();
+  activeTask = cron.schedule(cfg.cronExpression, async () => {
+    const rotation = cfg.categoryRotation || ['terror'];
+    const index    = (cfg.currentIndex || 0) % rotation.length;
+    const category = rotation[index];
 
-    if (!cfg.enabled) {
-      logger.info('Scheduler desactivado, omitiendo ejecución');
-      return;
-    }
+    logger.ok(`Scheduler: generando Short de categoría "${category}"...`);
 
-    // Rotar categorías
-    const category = cfg.categoryRotation[cfg.currentIndex % cfg.categoryRotation.length];
-    cfg.currentIndex = (cfg.currentIndex + 1) % cfg.categoryRotation.length;
-    writeConfig(cfg);
-
-    logger.step(`[CRON] Iniciando generación automática — categoría: ${category}`);
+    // Actualizar índice para la próxima ejecución
+    writeConfig({ ...cfg, currentIndex: (index + 1) % rotation.length });
 
     try {
       await runPipeline({
         category,
-        voice: cfg.voice,
-        autoUpload: cfg.autoUpload,
+        voice:      cfg.voice || 'es-AR-ElenaNeural',
+        autoUpload: cfg.autoUpload ?? true,
       });
-      logger.ok('[CRON] Generación automática completada');
-    } catch (error) {
-      logger.error(`[CRON] Error en generación automática: ${error.message}`);
+    } catch (err) {
+      logger.error(`Scheduler: error en pipeline — ${err.message}`);
     }
   });
-}
 
-/**
- * Detener el scheduler
- */
-export function stopScheduler() {
-  if (activeTask) {
-    activeTask.destroy();
-    activeTask = null;
-    logger.ok('Scheduler detenido');
-  }
-}
-
-/**
- * Actualizar configuración del scheduler y reiniciarlo
- */
-export function updateConfig(newConfig) {
-  const current = readConfig();
-  const updated = { ...current, ...newConfig };
-  writeConfig(updated);
-
-  // Reiniciar scheduler con nueva config
-  stopScheduler();
-  if (updated.enabled) {
-    startScheduler();
-  }
-
-  return updated;
-}
-
-/**
- * Obtener estado actual del scheduler
- */
-export function getSchedulerStatus() {
-  const config = readConfig();
-  return {
-    ...config,
-    isRunning: !!activeTask,
-  };
+  logger.ok(`Scheduler activo: ${cfg.cronExpression}`);
 }

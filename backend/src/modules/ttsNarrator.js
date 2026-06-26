@@ -1,154 +1,155 @@
 // ════════════════════════════════════════
-// TTS NARRATOR — Narración con msedge-tts
+// VIDEO FETCHER v2 — B-roll de Pexels sincronizado con escenas
+// La duración de cada clip = duración de su escena en el guión
 // ════════════════════════════════════════
 
-import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
-import ffmpeg from 'fluent-ffmpeg';
+//arreglo de bugs
+
+import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { sleep } from '../utils/fileManager.js';
 import { logger } from '../utils/logger.js';
 
-// Voces disponibles en español
-export const VOCES_DISPONIBLES = {
-  'es-AR-ElenaNeural':  { nombre: 'Elena (Argentina, Femenina)',  genero: 'F', acento: 'Argentina' },
-  'es-MX-DaliaNeural':  { nombre: 'Dalia (México, Femenina)',     genero: 'F', acento: 'México' },
-  'es-ES-AlvaroNeural': { nombre: 'Álvaro (España, Masculino)',   genero: 'M', acento: 'España' },
-  'es-MX-JorgeNeural':  { nombre: 'Jorge (México, Masculino)',    genero: 'M', acento: 'México' },
-};
+const PEXELS_BASE = 'https://api.pexels.com/videos';
+const DELAY_BETWEEN_CLIPS = 1200;
 
-/**
- * Obtener duración de un archivo de audio con ffprobe
- */
-function getAudioDuration(audioPath) {
-  return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(audioPath, (err, metadata) => {
-      if (err) return reject(new Error(`ffprobe error: ${err.message}`));
-      resolve(metadata.format.duration || 0);
-    });
+const BROLL_FALLBACK_KEYWORDS = [
+  'coffee pouring slow motion',
+  'rain window night cinematic',
+  'city lights night bokeh',
+  'candle flame close up dark',
+  'ocean waves slow motion',
+  'forest sunlight rays',
+  'hands close up cinematic',
+  'walking street rainy night',
+  'fire burning close up',
+  'empty road fog cinematic',
+];
+
+async function searchPexelsVideos(query, perPage = 8) {
+  const apiKey = process.env.PEXELS_API_KEY;
+  if (!apiKey) throw new Error('PEXELS_API_KEY no configurada en .env');
+
+  const response = await axios.get(`${PEXELS_BASE}/search`, {
+    headers: { Authorization: apiKey },
+    params: { query, per_page: perPage, orientation: 'portrait', size: 'medium' },
+    timeout: 15000,
   });
+
+  return response.data.videos || [];
+}
+
+function pickBestVideoFile(video) {
+  const files = video.video_files || [];
+  return (
+    files.find(f => f.quality === 'hd' && f.width < f.height) ||
+    files.find(f => f.width < f.height) ||
+    files.find(f => f.quality === 'hd') ||
+    files[0] ||
+    null
+  );
+}
+
+async function downloadClip(url, outputPath) {
+  const response = await axios({
+    method: 'GET', url,
+    responseType: 'stream',
+    timeout: 90000,
+    headers: { 'User-Agent': 'YoutubeShorts-AI/2.0' },
+  });
+
+  await new Promise((resolve, reject) => {
+    const writer = fs.createWriteStream(outputPath);
+    response.data.pipe(writer);
+    writer.on('finish', resolve);
+    writer.on('error', reject);
+  });
+
+  const stat = fs.statSync(outputPath);
+  if (stat.size < 50 * 1024) throw new Error(`Clip muy pequeño: ${stat.size} bytes`);
+  return outputPath;
+}
+
+async function fetchClipForScene(keywords, outputPath, sceneIndex, sceneDuration) {
+  const queries = Array.isArray(keywords)
+    ? [...keywords, BROLL_FALLBACK_KEYWORDS[sceneIndex % BROLL_FALLBACK_KEYWORDS.length]]
+    : [keywords, BROLL_FALLBACK_KEYWORDS[sceneIndex % BROLL_FALLBACK_KEYWORDS.length]];
+
+  for (const query of queries) {
+    try {
+      logger.info(`Buscando B-roll escena ${sceneIndex + 1}: "${query}"`);
+      const videos = await searchPexelsVideos(query, 8);
+      if (!videos.length) continue;
+
+      // Filtrar videos que tengan al menos la duración de la escena
+      const suficienteDuracion = videos.filter(v => (v.duration || 0) >= sceneDuration);
+      const pool = suficienteDuracion.length > 0 ? suficienteDuracion : videos;
+
+      const video = pool[Math.floor(Math.random() * Math.min(pool.length, 5))];
+      const file  = pickBestVideoFile(video);
+      if (!file?.link) continue;
+
+      logger.info(`Descargando: ${file.width}x${file.height} (${file.quality}) — ${video.duration}s`);
+      await downloadClip(file.link, outputPath);
+      logger.ok(`Clip ${sceneIndex + 1} descargado (necesita ${sceneDuration}s, clip tiene ${video.duration}s)`);
+
+      // Retornar con la duración EXACTA de la escena del guión
+      return { path: outputPath, duration: sceneDuration, sourceDuration: video.duration || sceneDuration };
+
+    } catch (error) {
+      logger.warn(`Error con "${query}": ${error.message}`);
+    }
+  }
+
+  throw new Error(`No se pudo obtener clip para escena ${sceneIndex + 1}`);
 }
 
 /**
- * Generar narración de texto a voz con msedge-tts
- * @param {string} text - Texto a narrar (texto plano, sin SSML)
- * @param {string} outputPath - Ruta base donde guardar (sin extensión)
- * @param {string} voice - Nombre de la voz (ej: "es-AR-ElenaNeural")
- * @returns {Promise<{audioPath, vttPath, durationSeconds}>}
+ * Función principal — descarga clips sincronizados con las escenas
+ * @param {Array} scenes - Escenas del guión (con videoKeywords y duration)
+ * @param {string} outputDir - Directorio de salida
  */
-export async function generateNarration(text, outputPath, voice = 'es-AR-ElenaNeural') {
-  if (!VOCES_DISPONIBLES[voice]) {
-    logger.warn(`Voz "${voice}" no reconocida, usando es-AR-ElenaNeural`);
-    voice = 'es-AR-ElenaNeural';
+export async function fetchSceneVideos(scenes, outputDir) {
+  logger.step(`Descargando ${scenes.length} clips de Pexels sincronizados con escenas...`);
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const clips  = [];
+  let exitosos = 0;
+  let fallidos = 0;
+
+  for (let i = 0; i < scenes.length; i++) {
+    const scene        = scenes[i];
+    const sceneDuration = scene.duration || 10;
+    const filename     = `raw_clip_${String(i + 1).padStart(3, '0')}.mp4`;
+    const outPath      = path.join(outputDir, filename);
+
+    const keywords = scene.videoKeywords
+      || scene.imagePrompt?.split(',').slice(0, 2).join(' ')
+      || BROLL_FALLBACK_KEYWORDS[i % BROLL_FALLBACK_KEYWORDS.length];
+
+    try {
+      const clip = await fetchClipForScene(keywords, outPath, i, sceneDuration);
+      clips.push(clip);
+      exitosos++;
+    } catch (error) {
+      logger.error(`Escena ${i + 1} sin clip: ${error.message}`);
+      // Fallback genérico
+      try {
+        const fallbackQuery = BROLL_FALLBACK_KEYWORDS[Math.floor(Math.random() * BROLL_FALLBACK_KEYWORDS.length)];
+        const clip = await fetchClipForScene([fallbackQuery], outPath, i, sceneDuration);
+        clips.push(clip);
+        exitosos++;
+        logger.warn(`Escena ${i + 1}: usando fallback genérico`);
+      } catch {
+        clips.push(null);
+        fallidos++;
+      }
+    }
+
+    if (i < scenes.length - 1) await sleep(DELAY_BETWEEN_CLIPS);
   }
 
-  const audioPath = `${outputPath}.mp3`;
-  const vttPath   = `${outputPath}.vtt`;
-  const outputDir = path.dirname(outputPath);
-
-  logger.step(`Generando narración con voz "${voice}"...`);
-
-  try {
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-
-    // toFile en msedge-tts v2 solo acepta (outputDir, text)
-    // El tercer parámetro NO existe — genera un nombre UUID interno
-    const result = await tts.toFile(outputDir, text);
-    const generatedPath = result?.audioFilePath;
-
-    if (!generatedPath || !fs.existsSync(generatedPath)) {
-      throw new Error('No audio data received');
-    }
-
-    // Renombrar el archivo UUID al nombre esperado
-    if (generatedPath !== audioPath) {
-      fs.renameSync(generatedPath, audioPath);
-    }
-
-    if (!fs.existsSync(audioPath) || fs.statSync(audioPath).size === 0) {
-      throw new Error('El archivo de audio generado está vacío');
-    }
-
-    logger.ok(`Audio guardado: ${path.basename(audioPath)} (${fs.statSync(audioPath).size} bytes)`);
-
-    // Generar VTT por duración
-    await generateBasicVtt(text, audioPath, vttPath);
-
-    const durationSeconds = await getAudioDuration(audioPath);
-    logger.ok(`Narración generada: ${durationSeconds.toFixed(1)}s → ${path.basename(audioPath)}`);
-
-    return { audioPath, vttPath, durationSeconds };
-
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Error en TTS: ${msg}`);
-  }
-}
-
-/**
- * VTT básico calculando tiempos por duración del audio
- */
-async function generateBasicVtt(text, audioPath, vttPath) {
-  try {
-    const duration = await getAudioDuration(audioPath);
-    const words = text.split(/\s+/).filter(Boolean);
-    const wordsPerSecond = words.length / duration;
-    const chunkSize = 6;
-
-    let vttContent = 'WEBVTT\n\n';
-    let wordIndex = 0;
-    let cueIndex = 1;
-
-    while (wordIndex < words.length) {
-      const chunk = words.slice(wordIndex, wordIndex + chunkSize);
-      const startSec = wordIndex / wordsPerSecond;
-      const endSec   = Math.min((wordIndex + chunkSize) / wordsPerSecond, duration);
-
-      vttContent += `${cueIndex}\n`;
-      vttContent += `${formatVttTime(startSec)} --> ${formatVttTime(endSec)}\n`;
-      vttContent += `${chunk.join(' ')}\n\n`;
-
-      wordIndex += chunkSize;
-      cueIndex++;
-    }
-
-    fs.writeFileSync(vttPath, vttContent, 'utf8');
-    logger.ok(`VTT básico generado: ${cueIndex - 1} cues`);
-  } catch {
-    fs.writeFileSync(vttPath, 'WEBVTT\n\n', 'utf8');
-  }
-}
-
-/** Formatear segundos a HH:MM:SS.mmm */
-function formatVttTime(seconds) {
-  const h  = Math.floor(seconds / 3600);
-  const m  = Math.floor((seconds % 3600) / 60);
-  const s  = Math.floor(seconds % 60);
-  const ms = Math.round((seconds % 1) * 1000);
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
-}
-
-/** Parsear VTT → array de cues para el editor de video */
-export function parseVtt(vttPath) {
-  try {
-    const content = fs.readFileSync(vttPath, 'utf8');
-    const cues = [];
-    const cueRegex = /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*\n([\s\S]*?)(?=\n\n|\n?$)/gm;
-    let match;
-    while ((match = cueRegex.exec(content)) !== null) {
-      cues.push({
-        start: parseVttTime(match[1]),
-        end:   parseVttTime(match[2]),
-        text:  match[3].replace(/<[^>]+>/g, '').trim(),
-      });
-    }
-    return cues;
-  } catch {
-    return [];
-  }
-}
-
-function parseVttTime(timeStr) {
-  const parts = timeStr.replace(',', '.').split(':');
-  return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+  logger.ok(`B-roll listo: ${exitosos} clips sincronizados, ${fallidos} fallidos`);
+  return clips;
 }

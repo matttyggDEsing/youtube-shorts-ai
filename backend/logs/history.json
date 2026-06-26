@@ -1,5 +1,83 @@
 [
   {
+    "id": "ad311ed0-ffc8-499e-90c4-4dd00e70cdd5",
+    "title": "La Noche del Terror",
+    "category": "terror",
+    "filePath": "output\\20260626185042_terror_la-noche-del-terror.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T18:49:24.483Z",
+    "duration": 25,
+    "description": "Descubre la historia más aterradora de mi vida. ¿Quieres saber qué sucedió? Suscríbete y mira la parte 2 para enterarte de lo que descubrí después.",
+    "tags": [
+      "terror",
+      "miedo",
+      "suspense",
+      "historias",
+      "shorts",
+      "emocionais"
+    ]
+  },
+  {
+    "id": "7922b144-6fc9-438d-b84c-5b9bc8b046cb",
+    "title": "La Noche del Terror",
+    "category": "terror",
+    "filePath": "output\\20260626183856_terror_la-noche-del-terror.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T18:38:12.928Z",
+    "duration": 12,
+    "description": "Descubre lo que sucedió esa noche en la casa embrujada. No te pierdas la parte 2, suscríbete ahora y activa la campana para más historias de terror.",
+    "tags": [
+      "terror",
+      "casas embrujadas",
+      "historias de miedo",
+      "shorts",
+      "historias",
+      "suspense"
+    ]
+  },
+  {
+    "id": "3624da2f-d64d-4e15-8169-a25765894793",
+    "title": "Mi noche más oscura",
+    "category": "motivacion",
+    "filePath": "output\\20260626183137_motivacion_mi-noche-mas-oscura.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T18:30:55.605Z",
+    "duration": 24,
+    "description": "Descubre cómo sobreviví a la adversidad. ¡Suscríbete y no te pierdas la parte 2! Esta es la historia de cómo mi vida cambió para siempre.",
+    "tags": [
+      "motivación",
+      "superación",
+      "historias de vida",
+      "inspiración",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "5b015963-dead-4e0d-af8d-be8b8716d26d",
+    "title": "Mi Noche Más Oscura",
+    "category": "motivacion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T18:26:36.931Z",
+    "duration": 27,
+    "error": "Error en montaje de video: FFmpeg error: ffmpeg version N-125299-gb2b37802a9-20260625 Copyright (c) 2000-2026 the FFmpeg developers\r\n  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)\r\n  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --disable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260625\r\n  libavutil      61.  0.100 / 61.  0.100\r\n  libavcodec     63.  0.100 / 63.  0.100\r\n  libavformat    63.  0.100 / 63.  0.100\r\n  libavdevice    63.  0.100 / 63.  0.100\r\n  libavfilter    12.  0.100 / 12.  0.100\r\n  libswscale     10.  0.100 / 10.  0.100\r\n  libswresample   7.  0.100 /  7.  0.100\r\nInput #0, lavfi, from 'color=c=0x0a0a0a:s=1080x1920:r=30':\r\n  Duration: N/A, start: 0.000000, bitrate: N/A\r\n  Stream #0:0: Video: wrapped_avframe, yuv420p, 1080x1920 [SAR 1:1 DAR 9:16], 30 fps, 30 tbr, 30 tbn\r\n[fc#-1 @ 000002105e88e7c0] Error applying option 'drawtext' to filter 'drawtext': Option not found\r\nError opening output file C:\\Users\\Maty\\Desktop\\youtube-shorts-ai\\backend\\temp\\5b015963-dead-4e0d-af8d-be8b8716d26d\\outro.mp4.\r\nError opening output files: Option not found\r\n"
+  },
+  {
+    "id": "d57e54a3-884c-4135-ae0a-aafa581b7535",
+    "title": "Mi noche más oscura",
+    "category": "motivacion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T18:26:11.086Z",
+    "duration": 0
+  },
+  {
     "id": "d4723a38-fcf3-43b5-9029-38423372bae4",
     "title": "Un día que cambió mi vida",
     "category": "historias_reales",
