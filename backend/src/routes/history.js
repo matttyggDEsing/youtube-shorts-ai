@@ -23,8 +23,30 @@ router.get('/', (req, res) => {
 });
 
 /**
+ * GET /api/history/meta/categories
+ * Lista de categorías disponibles
+ * ⚠ DEBE ir ANTES de /:id para que Express no lo capture como parámetro dinámico
+ */
+router.get('/meta/categories', (req, res) => {
+  res.json({
+    success: true,
+    categories: [
+      { id: 'terror',           name: 'Terror',           emoji: '👻' },
+      { id: 'misterio',         name: 'Misterio',         emoji: '🔍' },
+      { id: 'motivacion',       name: 'Motivación',       emoji: '💪' },
+      { id: 'romance',          name: 'Romance',          emoji: '❤️'  },
+      { id: 'ciencia_ficcion',  name: 'Ciencia Ficción',  emoji: '🚀' },
+      { id: 'historias_reales', name: 'Historias Reales', emoji: '📖' },
+      { id: 'leyendas',         name: 'Leyendas',         emoji: '🌙' },
+      { id: 'suspenso',         name: 'Suspenso',         emoji: '😰' },
+    ],
+  });
+});
+
+/**
  * GET /api/history/:id
  * Devuelve una entrada específica del historial
+ * ⚠ DEBE ir DESPUÉS de /meta/categories
  */
 router.get('/:id', (req, res) => {
   try {
@@ -36,26 +58,6 @@ router.get('/:id', (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
-});
-
-/**
- * GET /api/categories
- * Lista de categorías disponibles (también disponible desde aquí)
- */
-router.get('/meta/categories', (req, res) => {
-  res.json({
-    success: true,
-    categories: [
-      { id: 'terror',          name: 'Terror',            emoji: '👻' },
-      { id: 'misterio',        name: 'Misterio',          emoji: '🔍' },
-      { id: 'motivacion',      name: 'Motivación',        emoji: '💪' },
-      { id: 'romance',         name: 'Romance',           emoji: '❤️' },
-      { id: 'ciencia_ficcion', name: 'Ciencia Ficción',   emoji: '🚀' },
-      { id: 'historias_reales',name: 'Historias Reales',  emoji: '📖' },
-      { id: 'leyendas',        name: 'Leyendas',          emoji: '🌙' },
-      { id: 'suspenso',        name: 'Suspenso',          emoji: '😰' },
-    ],
-  });
 });
 
 export default router;

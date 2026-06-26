@@ -1,5 +1,6 @@
 // ════════════════════════════════════════
 // FILE MANAGER — Gestión de archivos y directorios
+// Fix #6: cleanTempDir era async sin necesidad — convertida a síncrona
 // ════════════════════════════════════════
 
 import fs from 'fs';
@@ -39,7 +40,7 @@ export function slugify(text) {
  */
 export function generateOutputFilename(category, title) {
   const now = new Date();
-  const ts = now.toISOString()
+  const ts  = now.toISOString()
     .replace(/[-:T]/g, '')
     .replace(/\..+/, '')
     .substring(0, 15);
@@ -48,15 +49,16 @@ export function generateOutputFilename(category, title) {
 }
 
 /**
- * Limpiar directorio temporal después de una generación exitosa
- * Mantiene solo el directorio, borra todos los archivos dentro
+ * Limpiar directorio temporal después de una generación exitosa.
+ * FIX #6: era async pero solo usaba fs síncrono — convertida a función síncrona.
+ * El pipeline la llamaba con await, lo que funcionaba pero era innecesario y confuso.
  */
-export async function cleanTempDir(tempDir) {
+export function cleanTempDir(tempDir) {
   try {
     const files = fs.readdirSync(tempDir);
     for (const file of files) {
       const filePath = path.join(tempDir, file);
-      const stat = fs.statSync(filePath);
+      const stat     = fs.statSync(filePath);
       if (stat.isDirectory()) {
         fs.rmSync(filePath, { recursive: true, force: true });
       } else {
@@ -89,8 +91,7 @@ export function readHistory() {
  */
 export function saveToHistory(entry) {
   const history = readHistory();
-  // Si ya existe por ID, actualizarlo
-  const idx = history.findIndex(h => h.id === entry.id);
+  const idx     = history.findIndex(h => h.id === entry.id);
   if (idx >= 0) {
     history[idx] = { ...history[idx], ...entry };
   } else {

@@ -1,5 +1,6 @@
 // ════════════════════════════════════════
 // CRON SCHEDULER v2 — Pipeline con B-roll real de Pexels
+// Fix #7: updateConfig ya no reinicia el scheduler si hay un pipeline activo
 // ════════════════════════════════════════
 
 import cron from 'node-cron';
@@ -15,18 +16,22 @@ import { uploadToYoutube, hasValidToken } from '../modules/youtubeUploader.js';
 import { generateOutputFilename, saveToHistory, cleanTempDir } from '../utils/fileManager.js';
 
 const CONFIG_PATH = './config.json';
-let activeTask = null;
+let activeTask    = null;
+
+// FIX #7: flag para saber si hay un pipeline corriendo
+// antes de reiniciar el scheduler desde updateConfig
+let pipelineRunning = false;
 
 function readConfig() {
   try {
     if (!fs.existsSync(CONFIG_PATH)) {
       const defaultConfig = {
-        enabled: false,
-        cronExpression: '0 18 * * *',
+        enabled:          false,
+        cronExpression:   '0 18 * * *',
         categoryRotation: ['terror', 'misterio', 'motivacion'],
-        currentIndex: 0,
-        autoUpload: true,
-        voice: 'es-AR-ElenaNeural',
+        currentIndex:     0,
+        autoUpload:       true,
+        voice:            'es-AR-ElenaNeural',
       };
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(defaultConfig, null, 2));
       return defaultConfig;
@@ -56,14 +61,16 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
 
   let historyEntry = {
     id,
-    title: '',
+    title:      '',
     category,
-    filePath: '',
+    filePath:   '',
     youtubeUrl: null,
-    status: 'processing',
-    createdAt: new Date().toISOString(),
-    duration: 0,
+    status:     'processing',
+    createdAt:  new Date().toISOString(),
+    duration:   0,
   };
+
+  pipelineRunning = true;
 
   try {
     // ── PASO 1: Generar historia con Groq ────────────────────
@@ -144,6 +151,10 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     saveToHistory(historyEntry);
     try { cleanTempDir(tempDir); } catch { /* no crítico */ }
     throw error;
+
+  } finally {
+    // Siempre liberar el flag al terminar, con éxito o con error
+    pipelineRunning = false;
   }
 }
 
@@ -157,13 +168,25 @@ export function getSchedulerStatus() {
     autoUpload:       cfg.autoUpload,
     voice:            cfg.voice,
     nextRun:          activeTask ? 'programado' : 'inactivo',
+    pipelineRunning,
   };
 }
 
+/**
+ * FIX #7: updateConfig ya no reinicia el scheduler mientras haya
+ * un pipeline activo. La nueva config se guarda en disco y se aplicará
+ * en el próximo ciclo del cron sin interrumpir la generación en curso.
+ */
 export function updateConfig(newConfig) {
   const cfg = { ...readConfig(), ...newConfig };
   writeConfig(cfg);
-  startScheduler();
+
+  if (pipelineRunning) {
+    logger.warn('Pipeline activo — la nueva configuración del scheduler se aplicará al terminar.');
+  } else {
+    startScheduler();
+  }
+
   return getSchedulerStatus();
 }
 
@@ -185,6 +208,13 @@ export function startScheduler() {
   }
 
   activeTask = cron.schedule(cfg.cronExpression, async () => {
+    // FIX #7: si ya hay un pipeline corriendo cuando dispara el cron,
+    // saltear este ciclo en lugar de iniciar uno paralelo
+    if (pipelineRunning) {
+      logger.warn('Scheduler: pipeline ya activo, saltando este ciclo.');
+      return;
+    }
+
     const rotation = cfg.categoryRotation || ['terror'];
     const index    = (cfg.currentIndex || 0) % rotation.length;
     const category = rotation[index];

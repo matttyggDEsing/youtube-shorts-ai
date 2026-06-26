@@ -1,6 +1,6 @@
 // ════════════════════════════════════════
 // VIDEO FETCHER — Descarga de B-roll desde Pexels API
-// v2: retry inteligente con simplificación progresiva de keywords
+// Fix #8: PEXELS_API_KEY se leía dos veces — unificado en una sola constante
 // ════════════════════════════════════════
 
 import axios from 'axios';
@@ -9,18 +9,16 @@ import path from 'path';
 import { sleep } from '../utils/fileManager.js';
 import { logger } from '../utils/logger.js';
 
+// FIX #8: una sola lectura de la variable de entorno.
+// Antes se leía en el módulo Y dentro de searchPexelsVideos con un fallback redundante.
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const PEXELS_BASE    = 'https://api.pexels.com/videos';
 
-// Delay entre descargas para no saturar la API
 const DELAY_BETWEEN_CLIPS = 1500;
+const CLIP_DURATION_MIN   = 1.2;
+const CLIP_DURATION_MAX   = 2.0;
 
-// Duración de cada clip en el video final (segundos)
-const CLIP_DURATION_MIN = 1.2;
-const CLIP_DURATION_MAX = 2.0;
-
-// Keywords de último recurso por categoría — se usan solo si todos los intentos fallan
-// Son visuales que Pexels siempre tiene disponibles para cada tipo de historia
+// Keywords de último recurso por categoría
 const CATEGORY_FALLBACKS = {
   terror:           ['dark hallway', 'shadow wall', 'candle flame', 'fog forest night', 'door old'],
   misterio:         ['fog street', 'old letter paper', 'clock vintage', 'empty room', 'window rain'],
@@ -32,7 +30,6 @@ const CATEGORY_FALLBACKS = {
   suspenso:         ['eye close up', 'footsteps floor', 'car headlights', 'phone ringing', 'shadow figure'],
 };
 
-// Fallback genérico si no tenemos categoría
 const GENERIC_FALLBACKS = [
   'cinematic nature',
   'city night lights',
@@ -45,16 +42,16 @@ const GENERIC_FALLBACKS = [
  * Buscar videos en Pexels por keyword
  */
 async function searchPexelsVideos(query, perPage = 8) {
-  const apiKey = PEXELS_API_KEY || process.env.PEXELS_API_KEY;
-  if (!apiKey) throw new Error('PEXELS_API_KEY no configurada en .env');
+  // FIX #8: se elimina la doble lectura — se usa directamente la constante del módulo
+  if (!PEXELS_API_KEY) throw new Error('PEXELS_API_KEY no configurada en .env');
 
   const response = await axios.get(`${PEXELS_BASE}/search`, {
-    headers: { Authorization: apiKey },
+    headers: { Authorization: PEXELS_API_KEY },
     params: {
       query,
-      per_page: perPage,
+      per_page:    perPage,
       orientation: 'portrait',
-      size: 'medium',
+      size:        'medium',
     },
     timeout: 15000,
   });
@@ -81,18 +78,18 @@ function pickBestVideoFile(video) {
  */
 async function downloadClip(url, outputPath) {
   const response = await axios({
-    method: 'GET',
+    method:       'GET',
     url,
     responseType: 'stream',
-    timeout: 60000,
-    headers: { 'User-Agent': 'YoutubeShorts-AI/2.0' },
+    timeout:      60000,
+    headers:      { 'User-Agent': 'YoutubeShorts-AI/2.0' },
   });
 
   await new Promise((resolve, reject) => {
     const writer = fs.createWriteStream(outputPath);
     response.data.pipe(writer);
     writer.on('finish', resolve);
-    writer.on('error', reject);
+    writer.on('error',  reject);
   });
 
   const stat = fs.statSync(outputPath);
@@ -127,8 +124,8 @@ async function tryQuery(query, outputPath, sceneIndex) {
     }
 
     const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 5));
-    const video = videos[randomIndex];
-    const file  = pickBestVideoFile(video);
+    const video       = videos[randomIndex];
+    const file        = pickBestVideoFile(video);
 
     if (!file?.link) {
       logger.warn(`    video sin archivo descargable`);
@@ -148,11 +145,9 @@ async function tryQuery(query, outputPath, sceneIndex) {
 /**
  * Simplificar un keyword quitando palabras de a una desde el final.
  * "abandoned house dark interior" → "abandoned house dark" → "abandoned house" → "abandoned"
- *
- * Devuelve array de versiones simplificadas (sin el original).
  */
 function simplifyKeyword(keyword) {
-  const words  = keyword.trim().split(/\s+/);
+  const words   = keyword.trim().split(/\s+/);
   const simpler = [];
   for (let i = words.length - 1; i >= 1; i--) {
     simpler.push(words.slice(0, i).join(' '));
@@ -161,22 +156,22 @@ function simplifyKeyword(keyword) {
 }
 
 /**
- * Buscar y descargar un clip para una escena.
+ * Buscar y descargar un clip para una escena con retry inteligente.
  *
- * Estrategia de retry (de más a menos específico):
+ * Estrategia (de más a menos específico):
  *   1. keyword[0] — específico (objeto/lugar de la escena)
  *   2. keyword[1] — acción + emoción
  *   3. keyword[2] — visual atmosférico
- *   4. Versiones simplificadas de keyword[0] (quitando palabras)
+ *   4. Versiones simplificadas de keyword[0]
  *   5. Versiones simplificadas de keyword[1]
- *   6. Fallbacks de la categoría (siempre disponibles en Pexels)
+ *   6. Fallbacks de la categoría
  */
 async function fetchClipForScene(keywords, outputPath, sceneIndex, category) {
   const kw = Array.isArray(keywords) ? keywords : [keywords];
 
   logger.step(`Escena ${sceneIndex + 1} — buscando B-roll:`);
 
-  // ── Fase 1: intentar cada keyword tal cual ────────────────
+  // Fase 1: intentar cada keyword tal cual
   for (const query of kw) {
     if (!query) continue;
     const result = await tryQuery(query, outputPath, sceneIndex);
@@ -184,7 +179,7 @@ async function fetchClipForScene(keywords, outputPath, sceneIndex, category) {
     await sleep(500);
   }
 
-  // ── Fase 2: simplificar keyword[0] progresivamente ────────
+  // Fase 2: simplificar keyword[0] progresivamente
   if (kw[0]) {
     logger.info(`  simplificando keyword[0]: "${kw[0]}"...`);
     for (const simplified of simplifyKeyword(kw[0])) {
@@ -194,7 +189,7 @@ async function fetchClipForScene(keywords, outputPath, sceneIndex, category) {
     }
   }
 
-  // ── Fase 3: simplificar keyword[1] progresivamente ────────
+  // Fase 3: simplificar keyword[1] progresivamente
   if (kw[1]) {
     logger.info(`  simplificando keyword[1]: "${kw[1]}"...`);
     for (const simplified of simplifyKeyword(kw[1])) {
@@ -204,12 +199,11 @@ async function fetchClipForScene(keywords, outputPath, sceneIndex, category) {
     }
   }
 
-  // ── Fase 4: fallbacks de la categoría ────────────────────
+  // Fase 4: fallbacks de la categoría
   const categoryFallbacks = CATEGORY_FALLBACKS[category] || GENERIC_FALLBACKS;
   logger.warn(`  usando fallback de categoría "${category}"...`);
 
-  // Rotar los fallbacks según el índice de la escena para variedad
-  const startIdx = sceneIndex % categoryFallbacks.length;
+  const startIdx        = sceneIndex % categoryFallbacks.length;
   const orderedFallbacks = [
     ...categoryFallbacks.slice(startIdx),
     ...categoryFallbacks.slice(0, startIdx),
@@ -226,9 +220,6 @@ async function fetchClipForScene(keywords, outputPath, sceneIndex, category) {
 
 /**
  * Función principal — descarga clips para todas las escenas
- * @param {Array}  scenes    - Array de escenas del guión (con campo videoKeywords)
- * @param {string} outputDir - Directorio donde guardar los clips
- * @param {string} category  - Categoría de la historia (para fallbacks temáticos)
  */
 export async function fetchSceneVideos(scenes, outputDir, category = 'terror') {
   logger.step(`Descargando ${scenes.length} clips de B-roll desde Pexels...`);

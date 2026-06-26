@@ -1,0 +1,20 @@
+[33mcommit 709db0a0eb5d79d82a4096cff759feb4af4e12b4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: matttyggDEsing <matiasanderegg8@gmail.com>
+Date:   Fri Jun 26 20:30:55 2026 -0300
+
+    Mejoras
+
+backend/.gitignore
+backend/credentials/credentials.json
+backend/credentials/token.json
+backend/logs/history.json
+backend/output/20260626183137_motivacion_mi-noche-mas-oscura.mp4
+backend/output/20260626183856_terror_la-noche-del-terror.mp4
+backend/output/20260626185042_terror_la-noche-del-terror.mp4
+backend/output/20260626191512_terror_la-noche-del-terror.mp4
+backend/output/20260626191851_historias_reales_la-noche-del-terror.mp4
+backend/src/modules/storyGenerator.js
+backend/src/modules/videoEditor.js
+backend/src/modules/videoFetcher.js
+backend/src/modules/youtubeUploader.js
+backend/src/scheduler/cronScheduler.js

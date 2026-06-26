@@ -1,7 +1,7 @@
 // ════════════════════════════════════════
 // TTS NARRATOR — Narración con Microsoft Edge TTS (msedge-tts v2)
-// API correcta: toFile() devuelve { audioFilePath, metadataFilePath }
-// Word boundaries leídos desde metadata.json generado por la lib
+// Fix #3a: setMetadata NO acepta tercer argumento — eliminado { wordBoundaryEnabled }
+// Fix #3b: duración calculada desde metadata cuando existe, no por tamaño de archivo
 // ════════════════════════════════════════
 
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
@@ -32,6 +32,32 @@ function formatVttTime(seconds) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 }
 
+// ── Calcular duración real desde metadata ────────────────────
+
+/**
+ * Calcula la duración real del audio desde los word boundaries del metadata.
+ * Toma el offset + duration del último item para obtener el fin real del audio.
+ * Mucho más preciso que estimar por tamaño de archivo.
+ */
+function getDurationFromMetadata(metadataPath) {
+  try {
+    const raw   = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const items = (raw.Metadata || []).filter(
+      m => m.Type === 'WordBoundary' && m.Data?.Offset !== undefined
+    );
+    if (!items.length) return null;
+
+    const last = items[items.length - 1];
+    const endTicks = last.Data.Offset + (last.Data.Duration || 0);
+    const duration = ticksToSeconds(endTicks);
+
+    // Agregar 300ms de margen al final para que el audio no se corte
+    return duration + 0.3;
+  } catch {
+    return null;
+  }
+}
+
 // ── Generadores de VTT ───────────────────────────────────────
 
 /**
@@ -41,7 +67,7 @@ function formatVttTime(seconds) {
  * Offset y Duration están en ticks de 100ns.
  */
 function buildVttFromMetadata(metadataPath, totalDuration, vttPath) {
-  const raw  = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+  const raw   = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
   const items = (raw.Metadata || []).filter(
     m => m.Type === 'WordBoundary' && m.Data?.text?.Text?.trim()
   );
@@ -53,10 +79,10 @@ function buildVttFromMetadata(metadataPath, totalDuration, vttPath) {
   let cueIndex    = 1;
 
   for (let i = 0; i < items.length; i += MAX_WORDS) {
-    const chunk = items.slice(i, i + MAX_WORDS);
-    const start = ticksToSeconds(chunk[0].Data.Offset);
+    const chunk    = items.slice(i, i + MAX_WORDS);
+    const start    = ticksToSeconds(chunk[0].Data.Offset);
     const nextItem = items[i + MAX_WORDS];
-    const end   = nextItem
+    const end      = nextItem
       ? ticksToSeconds(nextItem.Data.Offset)
       : Math.max(totalDuration, start + 0.1);
 
@@ -85,7 +111,6 @@ function buildVttFallback(text, totalDuration, vttPath) {
   let cueIndex     = 1;
   let elapsed      = 0;
 
-  // Calcular inicio de cada palabra proporcionalmente
   const wordTimings = words.map(word => {
     const start = elapsed;
     elapsed += (word.length / totalChars) * totalDuration;
@@ -131,10 +156,13 @@ export async function generateNarration(text, outputBase, voice = 'es-AR-ElenaNe
   fs.mkdirSync(ttsDir, { recursive: true });
 
   const tts = new MsEdgeTTS();
+
+  // FIX #3a: setMetadata solo acepta 2 argumentos en msedge-tts v2.
+  // El tercer argumento { wordBoundaryEnabled: true } era inválido y causaba
+  // el error "tts.on is not a function" en versiones anteriores del código.
   await tts.setMetadata(
     selectedVoice,
-    OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-    { wordBoundaryEnabled: true }
+    OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3
   );
 
   // toFile() → { audioFilePath, metadataFilePath }
@@ -148,10 +176,25 @@ export async function generateNarration(text, outputBase, voice = 'es-AR-ElenaNe
   const finalAudioPath = `${path.join(outDir, outName)}.mp3`;
   fs.renameSync(audioFilePath, finalAudioPath);
 
-  const audioStat       = fs.statSync(finalAudioPath);
-  // Estimación: MP3 96kbps mono → bytes / (96000/8) = bytes / 12000
-  const durationSeconds = audioStat.size / 12000;
+  // FIX #3b: Calcular duración desde metadata (preciso) en lugar de por tamaño de archivo (inexacto).
+  // Fallback: estimación por tamaño si no hay metadata disponible.
+  let durationSeconds = null;
 
+  if (metadataFilePath && fs.existsSync(metadataFilePath)) {
+    durationSeconds = getDurationFromMetadata(metadataFilePath);
+    if (durationSeconds) {
+      logger.ok(`Duración calculada desde metadata: ${durationSeconds.toFixed(1)}s`);
+    }
+  }
+
+  if (!durationSeconds) {
+    // Fallback: MP3 96kbps mono → bytes / (96000/8) = bytes / 12000
+    const audioStat = fs.statSync(finalAudioPath);
+    durationSeconds = audioStat.size / 12000;
+    logger.warn(`Duración estimada por tamaño de archivo: ${durationSeconds.toFixed(1)}s`);
+  }
+
+  const audioStat = fs.statSync(finalAudioPath);
   logger.ok(`Audio TTS: ${path.basename(finalAudioPath)} (~${durationSeconds.toFixed(1)}s, ${(audioStat.size / 1024).toFixed(0)} KB)`);
 
   // Generar VTT desde metadata si existe, si no fallback por estimación

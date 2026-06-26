@@ -1,6 +1,7 @@
 // ════════════════════════════════════════
 // STORY GENERATOR — Generación de guiones con Groq / Llama 3.3
-// v4: anti-repetición con historial + seed variable + forzado de unicidad
+// Fix #4/#12: import sleep verificado + prompt reforzado en español
+//             + detección de duplicados corregida (incluye todos los status)
 // ════════════════════════════════════════
 
 import Groq from 'groq-sdk';
@@ -19,7 +20,6 @@ const CATEGORIAS = {
 };
 
 // Ganchos de apertura variados por categoría
-// Se elige uno al azar en cada generación para forzar diversidad
 const HOOKS_POR_CATEGORIA = {
   terror: [
     'Nunca debí entrar ahí.',
@@ -133,9 +133,6 @@ const EMOTION_VISUAL_HINTS = {
 
 /**
  * Generar guión completo de historia para un YouTube Short
- * @param {string} category - Categoría del video
- * @param {number} durationSeconds - Duración objetivo en segundos (default: 55)
- * @returns {Promise<Object>} title, description, tags, scenes, fullNarration
  */
 export async function generateStory(category = 'terror', durationSeconds = 55) {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -146,9 +143,12 @@ export async function generateStory(category = 'terror', durationSeconds = 55) {
   const scenesCount = Math.min(maxScenes, Math.max(minScenes, Math.round(durationSeconds / 5)));
 
   // ── Leer historial para evitar repetir historias ──────────
+  // FIX #12: se eliminó el filtro por status — los duplicados se colaban
+  // porque algunos tenían status 'local' o 'uploaded' pero igual eran repetidos.
+  // Ahora se considera todo el historial con título válido.
   const recentTitles = readHistory()
-    .filter(h => h.title && h.status !== 'failed')
-    .slice(0, 20)                          // últimas 20 entradas
+    .filter(h => h.title)
+    .slice(0, 25)
     .map(h => `"${h.title}"`)
     .join(', ');
 
@@ -164,8 +164,10 @@ export async function generateStory(category = 'terror', durationSeconds = 55) {
     .map(([emotion, examples]) => `  ${emotion}: "${examples}"`)
     .join('\n');
 
+  // FIX #12: system prompt reforzado para evitar mezcla de idiomas
   const systemPrompt = `Eres un guionista experto en YouTube Shorts virales en español latinoamericano.
 Creás historias adictivas con ritmo frenético, narración emocional en primera persona y ganchos narrativos.
+REGLA ABSOLUTA: TODO el contenido del JSON debe estar en español latinoamericano. Esto incluye title, description, tags y el texto de cada escena. Está terminantemente prohibido usar palabras en inglés en cualquier campo de texto en español. Los únicos campos en inglés son videoKeywords.
 Tu única tarea es responder con un JSON válido y nada más. Sin markdown, sin explicaciones, sin backticks.`;
 
   const userPrompt = `${promptSeed} Creá un guión para un YouTube Short VIRAL de categoría "${category}" (${descripcionCategoria}).
@@ -180,6 +182,7 @@ ESTILO OBLIGATORIO:
 - Cada escena termina con tensión que obliga a seguir escuchando
 - La ÚLTIMA escena SIEMPRE termina en cliffhanger o pregunta que deje en suspenso
 - Lenguaje coloquial latinoamericano, cercano, real
+- La descripción de YouTube DEBE estar 100% en español, sin mezclar inglés
 
 ══════════════════════════════════════════
 REGLAS PARA "videoKeywords" — MUY IMPORTANTE
@@ -210,18 +213,18 @@ REGLAS ADICIONALES para keywords:
 
 Devolvé ÚNICAMENTE este JSON (sin texto extra, sin markdown):
 {
-  "title": "Título impactante para YouTube (máx 60 caracteres, genera curiosidad)",
-  "description": "Descripción para YouTube (máximo 150 palabras). Incluir call to action para suscribirse y ver la parte 2.",
+  "title": "Título impactante para YouTube (máx 60 caracteres, en español, genera curiosidad)",
+  "description": "Descripción para YouTube en español (máximo 150 palabras). Incluir call to action para suscribirse y ver la parte 2. SOLO en español.",
   "tags": ["etiqueta1", "etiqueta2", "etiqueta3", "etiqueta4", "etiqueta5", "shorts", "historias"],
   "scenes": [
     {
-      "text": "Texto narrado de esta escena. Máximo 20 palabras. Frase corta e impactante.",
+      "text": "Texto narrado de esta escena en español. Máximo 20 palabras. Frase corta e impactante.",
       "videoKeywords": ["specific object/place", "action emotion", "atmospheric visual"],
       "duration": 4,
       "emotion": "tension|sadness|fear|hope|love|shock|mystery|suspense"
     }
   ],
-  "fullNarration": "Texto completo de la narración, todo seguido sin separaciones"
+  "fullNarration": "Texto completo de la narración en español, todo seguido con espacios entre frases"
 }
 
 REGLAS FINALES:
@@ -229,7 +232,7 @@ REGLAS FINALES:
 - Las duraciones sumadas deben dar ~${durationSeconds} segundos
 - Primera escena: DEBE arrancar EXACTAMENTE con esta frase como gancho de apertura: "${hookAleatorio}" — no la modifiques, úsala tal cual como primer texto de la primera escena
 - Última escena: cliffhanger o pregunta abierta SIEMPRE
-- "fullNarration" = concatenación de todos los "text"`;
+- "fullNarration" = concatenación de todos los "text" separados por un espacio`;
 
   // Temperatura variable por intento: sube si repite para forzar más creatividad
   const temperatures = [0.92, 1.05, 1.15];
@@ -267,14 +270,13 @@ REGLAS FINALES:
         throw new Error(`Muy pocas escenas: ${story.scenes.length}`);
       }
 
-      // Verificar que el título no sea igual o muy similar a uno reciente
-      const history = readHistory().filter(h => h.status !== 'failed').slice(0, 15);
+      // FIX #12: detección de duplicados ampliada — ahora compara contra
+      // todos los títulos del historial sin filtrar por status
+      const history = readHistory().filter(h => h.title).slice(0, 20);
       const normalizeTitle = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
       const newTitleNorm   = normalizeTitle(story.title);
       const isDuplicate    = history.some(h => {
-        if (!h.title) return false;
         const existingNorm = normalizeTitle(h.title);
-        // Igual exacto, o más del 70% de palabras compartidas
         if (existingNorm === newTitleNorm) return true;
         const wordsNew = new Set(newTitleNorm.split(' ').filter(w => w.length > 3));
         const wordsOld = existingNorm.split(' ').filter(w => w.length > 3);
@@ -288,10 +290,9 @@ REGLAS FINALES:
       }
 
       // Validar y normalizar videoKeywords — asegurar que siempre sea array de 3
-      story.scenes = story.scenes.map((scene, i) => {
+      story.scenes = story.scenes.map((scene) => {
         let kw = scene.videoKeywords;
         if (!Array.isArray(kw)) kw = kw ? [kw] : [];
-        // Si vino con menos de 3, rellenar con derivados del texto de la escena
         while (kw.length < 3) {
           const emotion = scene.emotion || 'tension';
           const fallback = EMOTION_VISUAL_HINTS[emotion]?.split(',')[kw.length]?.trim()

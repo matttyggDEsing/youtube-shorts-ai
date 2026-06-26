@@ -1,5 +1,26 @@
 [
   {
+    "id": "62e31a8d-e58d-4c57-9357-1290fdf94161",
+    "title": "La leyenda oscura",
+    "category": "leyendas",
+    "filePath": "output\\20260626235201_leyendas_la-leyenda-oscura.mp4",
+    "youtubeUrl": "https://youtu.be/7YlK_oV8UUQ",
+    "status": "uploaded",
+    "createdAt": "2026-06-26T23:51:30.182Z",
+    "duration": 30,
+    "description": "Descubre la verdad detrás de la leyenda más aterradora de nuestra ciudad. No te pierdas la parte 2, suscríbete ahora y activa la campanita para no perderte nada.",
+    "tags": [
+      "leyendas",
+      "mitos",
+      "folklore",
+      "suspense",
+      "misterio",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "7YlK_oV8UUQ"
+  },
+  {
     "id": "93172ff1-ecac-46c3-b418-8ef2c8838216",
     "title": "Llamada desde la tumba",
     "category": "misterio",

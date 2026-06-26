@@ -1,6 +1,6 @@
 /**
  * app.js — Panel de control de Shorts Automático
- * Fix: startGeneration ahora abre SSE Y dispara POST /api/generate
+ * Fix #2: History.load() ahora lee data.history (el endpoint devuelve { success, history: [] })
  */
 
 /* ══════════════════════════════════════════════════════════════
@@ -93,7 +93,6 @@ const App = (() => {
     };
 
     // ── PASO 2: Disparar el pipeline con POST ───────────────
-    // (Esto faltaba — el SSE solo escucha, el POST arranca la generación)
     try {
       const res = await fetch('/api/generate', {
         method:  'POST',
@@ -102,7 +101,7 @@ const App = (() => {
           category:   $('categorySelect').value,
           voice:      $('voiceSelect').value,
           autoUpload: $('autoUploadToggle').checked,
-          clientId,   // el servidor lo usa para enviarle los eventos SSE
+          clientId,
         }),
       });
 
@@ -125,7 +124,6 @@ const App = (() => {
   function handleSSEEvent(data) {
     const { step, progress, message, url, videoPath, error } = data;
 
-    // El servidor manda step:'error' con campo error cuando algo falla
     if (step === 'error' || error) {
       closeSSE();
       showError(error || message || 'Error desconocido en el pipeline.');
@@ -135,13 +133,11 @@ const App = (() => {
       return;
     }
 
-    // Ignorar el evento inicial de conexión establecida
     if (step === 'connected') return;
 
     setProgressFill(progress ?? 0);
     if (message) setProgressMessage(message);
 
-    // Actualizar steps visuales
     if (step && step !== 'done') {
       const idx = STEP_ORDER.indexOf(step);
       STEP_ORDER.forEach((s, i) => {
@@ -175,7 +171,6 @@ const App = (() => {
 
     const video = $('resultVideo');
     if (videoPath) {
-      // Construir URL de preview local desde la ruta de archivo
       const previewUrl = videoPath.startsWith('/output')
         ? videoPath
         : '/output/' + videoPath.split(/[\\/]/).pop();
@@ -237,7 +232,9 @@ const History = (() => {
     try {
       const res  = await fetch('/api/history');
       const data = await res.json();
-      render(Array.isArray(data) ? data : []);
+      // FIX: el endpoint devuelve { success, history: [] }, no un array directo
+      const items = Array.isArray(data.history) ? data.history : [];
+      render(items);
     } catch {
       render([]);
     }
@@ -256,7 +253,7 @@ const History = (() => {
     empty.hidden = true;
     [...grid.children].forEach(c => { if (c !== empty) c.remove(); });
 
-    [...items].forEach(item => {
+    items.forEach(item => {
       const card = buildCard(item);
       grid.appendChild(card);
     });
@@ -297,11 +294,11 @@ const History = (() => {
   async function uploadItem(id) {
     showToast('Iniciando subida…');
     try {
-      const res  = await fetch(`/api/upload/${id}`, { method: 'POST' });
+      const res  = await fetch(`/api/youtube/upload/${id}`, { method: 'POST' });
       const data = await res.json();
-      if (data.url) {
-        showToast('✓ Subido: ' + data.url);
-        load();
+      if (data.success) {
+        showToast('✓ Subida iniciada. Puede tardar unos minutos.');
+        setTimeout(() => load(), 5000);
       } else {
         showToast('Error: ' + (data.error ?? 'desconocido'));
       }
@@ -546,8 +543,8 @@ const Config = (() => {
       const data = await res.json();
 
       if (data.authUrl) {
-        $('oauthPanel').hidden    = false;
-        $('oauthLink').href       = data.authUrl;
+        $('oauthPanel').hidden     = false;
+        $('oauthLink').href        = data.authUrl;
         $('oauthLink').textContent = 'Abrir autorización ↗';
         showToast('Abrí el enlace de autorización en tu navegador.');
       } else {

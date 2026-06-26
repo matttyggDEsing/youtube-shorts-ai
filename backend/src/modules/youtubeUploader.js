@@ -1,5 +1,7 @@
 // ════════════════════════════════════════
 // YOUTUBE UPLOADER — Subida con googleapis y OAuth 2.0
+// Fix #5a: hasValidToken() ahora verifica expiración real del token
+// Fix #5b: refresh de token persiste a disco aunque no venga refresh_token nuevo
 // ════════════════════════════════════════
 
 import { google } from 'googleapis';
@@ -29,14 +31,32 @@ function createOAuthClient() {
 }
 
 /**
- * Verificar si existe un token válido
+ * FIX #5a: Verificar si existe un token válido y no expirado.
+ * Antes solo chequeaba si existía access_token o refresh_token,
+ * pero un access_token expirado sin refresh_token pasaba igual y fallaba al subir.
  * @returns {boolean}
  */
 export function hasValidToken() {
   try {
     if (!fs.existsSync(TOKEN_PATH)) return false;
+
     const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
-    return !!token.access_token || !!token.refresh_token;
+
+    // Sin ningún token → inválido
+    if (!token.access_token && !token.refresh_token) return false;
+
+    // Si hay refresh_token siempre podemos renovar → válido
+    if (token.refresh_token) return true;
+
+    // Solo hay access_token: verificar que no esté expirado
+    // expiry_date viene en milisegundos desde epoch
+    if (token.expiry_date) {
+      const margenMs = 5 * 60 * 1000; // 5 minutos de margen
+      return Date.now() < token.expiry_date - margenMs;
+    }
+
+    // Sin expiry_date y sin refresh_token: asumimos que puede estar vencido
+    return false;
   } catch {
     return false;
   }
@@ -69,8 +89,8 @@ export async function saveTokenFromCode(code) {
 }
 
 /**
- * Obtener cliente OAuth2 autenticado
- * Carga y refresca el token automáticamente
+ * Obtener cliente OAuth2 autenticado.
+ * Carga y refresca el token automáticamente.
  */
 async function getAuthenticatedClient() {
   const oAuth2Client = createOAuthClient();
@@ -82,12 +102,21 @@ async function getAuthenticatedClient() {
   const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
   oAuth2Client.setCredentials(token);
 
-  // Refrescar token si está por vencer
+  // FIX #5b: persistir a disco SIEMPRE que lleguen tokens nuevos,
+  // no solo cuando venga un refresh_token nuevo.
+  // El caso más común es que Google renueve solo el access_token;
+  // antes ese caso no se guardaba y en el próximo arranque el token estaba vencido.
   oAuth2Client.on('tokens', (newTokens) => {
-    if (newTokens.refresh_token) {
+    try {
       const updated = { ...token, ...newTokens };
       fs.writeFileSync(TOKEN_PATH, JSON.stringify(updated, null, 2));
-      logger.info('Token de YouTube refrescado automáticamente.');
+      if (newTokens.refresh_token) {
+        logger.info('Token de YouTube refrescado (access + refresh) y guardado.');
+      } else {
+        logger.info('Token de YouTube refrescado (solo access_token) y guardado.');
+      }
+    } catch (err) {
+      logger.warn(`No se pudo persistir el token renovado: ${err.message}`);
     }
   });
 
@@ -97,7 +126,7 @@ async function getAuthenticatedClient() {
 /**
  * Subir video a YouTube como Short
  * @param {string} videoPath - Ruta al archivo MP4
- * @param {Object} options - Metadatos del video
+ * @param {Object} options   - Metadatos del video
  * @returns {Promise<{videoId: string, url: string}>}
  */
 export async function uploadToYoutube(videoPath, { title, description, tags, categoryId = '24' }) {
@@ -107,14 +136,13 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
 
   logger.step(`Subiendo video a YouTube: "${title}"`);
 
-  const auth = await getAuthenticatedClient();
+  const auth    = await getAuthenticatedClient();
   const youtube = google.youtube({ version: 'v3', auth });
 
   const fileSize = fs.statSync(videoPath).size;
   logger.info(`Tamaño del video: ${(fileSize / 1024 / 1024).toFixed(1)} MB`);
 
-  // ── Forzar clasificación como Short ──────────────────────────
-  // YouTube requiere #Shorts en título o descripción para clasificarlo correctamente
+  // Forzar clasificación como Short
   const shortsTitle = title.endsWith('#Shorts')
     ? title.substring(0, 100)
     : `${title} #Shorts`.substring(0, 100);
@@ -132,14 +160,14 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
         title:                shortsTitle,
         description:          shortsDescription,
         tags:                 shortsTags,
-        categoryId:           categoryId, // 24 = Entertainment
+        categoryId:           categoryId,
         defaultLanguage:      'es',
         defaultAudioLanguage: 'es',
       },
       status: {
-        privacyStatus:              'public',
-        selfDeclaredMadeForKids:    false,
-        madeForKids:                false,
+        privacyStatus:           'public',
+        selfDeclaredMadeForKids: false,
+        madeForKids:             false,
       },
     },
     media: {
@@ -148,7 +176,7 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
   });
 
   const videoId = response.data.id;
-  const url = `https://youtu.be/${videoId}`;
+  const url     = `https://youtu.be/${videoId}`;
 
   logger.ok(`Short subido exitosamente: ${url}`);
 
@@ -161,18 +189,18 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
  */
 export async function checkYoutubeStatus() {
   const credentialsExist = fs.existsSync(CREDENTIALS_PATH);
-  const tokenExists = hasValidToken();
+  const tokenExists      = hasValidToken();
 
   if (!credentialsExist) {
     return { connected: false, reason: 'Sin credentials.json' };
   }
 
   if (!tokenExists) {
-    return { connected: false, reason: 'Sin token de autorización' };
+    return { connected: false, reason: 'Sin token válido de autorización' };
   }
 
   try {
-    const auth = await getAuthenticatedClient();
+    const auth    = await getAuthenticatedClient();
     const youtube = google.youtube({ version: 'v3', auth });
 
     await youtube.channels.list({ part: ['snippet'], mine: true });
