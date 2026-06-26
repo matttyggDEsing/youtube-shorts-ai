@@ -30,15 +30,6 @@ function getFfmpegPath() {
   return process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
 }
 
-// Mantenido por compatibilidad — solo usado en addSubtitles (fallback tolerante a errores)
-function runFfmpeg(command) {
-  return new Promise((resolve, reject) => {
-    command
-      .on('end', resolve)
-      .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)));
-  });
-}
-
 /**
  * Ejecutar ffmpeg directamente con execFile
  * Evita el bug de fluent-ffmpeg en Windows donde el evento 'end'
@@ -182,9 +173,8 @@ function escapeDrawtext(text) {
 
 /**
  * PASO 5: Agregar subtítulos al video
- * Nota: sigue usando runFfmpeg (fluent-ffmpeg) porque el filtro drawtext complejo
- * es difícil de pasar sin escapado adicional via execFile. Si también se tilda,
- * migrarlo a runFfmpegDirect igual que los otros pasos.
+ * FIX: migrado a runFfmpegDirect — fluent-ffmpeg no dispara 'end' en Windows
+ * con filtros drawtext complejos, dejando el proceso tildado indefinidamente.
  */
 async function addSubtitles(videoPath, vttPath, tempDir) {
   logger.step('Agregando subtítulos...');
@@ -197,9 +187,10 @@ async function addSubtitles(videoPath, vttPath, tempDir) {
 
   const withSubsPath = path.join(tempDir, 'with_subs.mp4');
 
-  const filters = vttCues.map((cue) => {
+  // Construir el filtro complejo como un único string para pasarlo a -vf
+  const vfFilter = vttCues.map((cue) => {
     const text   = escapeDrawtext(cue.text);
-    const enable = `between(t,${cue.start.toFixed(3)},${cue.end.toFixed(3)})`;
+    const enable = `between(t\\,${cue.start.toFixed(3)}\\,${cue.end.toFixed(3)})`;
     return [
       `drawtext=text='${text}'`,
       `enable='${enable}'`,
@@ -212,21 +203,19 @@ async function addSubtitles(videoPath, vttPath, tempDir) {
       `boxborderw=12`,
       `line_spacing=8`,
     ].join(':');
-  });
+  }).join(',');
 
   try {
-    await runFfmpeg(
-      ffmpeg()
-        .input(videoPath)
-        .outputOptions([
-          `-vf ${filters.join(',')}`,
-          `-c:v libx264`,
-          `-preset ${VIDEO_CONFIG.preset}`,
-          `-crf ${VIDEO_CONFIG.crf}`,
-          `-c:a copy`,
-        ])
-        .output(withSubsPath)
-    );
+    await runFfmpegDirect([
+      '-y',
+      '-i', videoPath,
+      '-vf', vfFilter,
+      '-c:v', 'libx264',
+      '-preset', VIDEO_CONFIG.preset,
+      '-crf', String(VIDEO_CONFIG.crf),
+      '-c:a', 'copy',
+      withSubsPath,
+    ]);
     logger.ok(`Subtítulos agregados: ${vttCues.length} cues`);
     return withSubsPath;
   } catch (error) {
