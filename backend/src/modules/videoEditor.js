@@ -12,11 +12,11 @@ import { logger } from '../utils/logger.js';
 const VIDEO_CONFIG = {
   width: 1080,
   height: 1920,
-  fps: 24,              // Bajado de 30 a 24 — suficiente para Shorts, mucho más rápido
+  fps: 24,
   videoBitrate: '3000k',
   audioBitrate: '192k',
-  preset: 'veryfast',  // Cambiado de 'fast' a 'veryfast'
-  crf: 26,             // Ligeramente más comprimido, igual de buena calidad visual
+  preset: 'veryfast',
+  crf: 26,
 };
 
 function runFfmpeg(command) {
@@ -48,47 +48,40 @@ async function resizeImages(imagePaths, tempDir) {
 }
 
 /**
- * PASO 2: Convertir cada imagen a clip de video
- * Usa scale+crop en lugar de zoompan — mismo efecto visual, 20x más rápido
+ * PASO 2: Imagen → clip de video usando lavfi + movie filter
+ * Enfoque: generar video desde imagen con duración exacta, sin loop infinito
  */
 async function imagesToClips(resizedPaths, scenes, tempDir) {
   logger.step('Convirtiendo imágenes a clips de video...');
   const clipPaths = [];
 
+  const W = VIDEO_CONFIG.width;
+  const H = VIDEO_CONFIG.height;
+
   for (let i = 0; i < resizedPaths.length; i++) {
     const scene    = scenes[i] || { duration: 8 };
     const duration = scene.duration || 8;
     const clipPath = path.join(tempDir, `clip_${String(i + 1).padStart(3, '0')}.mp4`);
+    const imgPath  = resizedPaths[i].replace(/\\/g, '/');
 
-    // Zoom suave del 100% al 108% usando scale animado con overlay
-    // Alternativa rápida: escalar ligeramente más grande y usar crop centrado
-    // Esto da el efecto Ken Burns sin el costo de zoompan
-    const W = VIDEO_CONFIG.width;
-    const H = VIDEO_CONFIG.height;
-    const zoomW = Math.round(W * 1.08);
-    const zoomH = Math.round(H * 1.08);
-    const cropX  = Math.round((zoomW - W) / 2);
-    const cropY  = Math.round((zoomH - H) / 2);
-
+    // Usar lavfi con movie source + loop — garantiza duración exacta
+    // movie=file:loop=0,trim=duration=N es la forma más confiable en Windows
     const command = ffmpeg()
-      .input(resizedPaths[i])
-      .inputOptions(['-loop 1'])
-      .videoFilters([
-        // Escalar a tamaño ligeramente más grande
-        `scale=${zoomW}:${zoomH}`,
-        // Crop centrado al tamaño final — efecto zoom estático simple y rápido
-        `crop=${W}:${H}:${cropX}:${cropY}`,
-        // Convertir imagen estática en video con fps correcto
-        `fps=${VIDEO_CONFIG.fps}`,
+      .input(imgPath)
+      .inputOptions([
+        '-loop 1',
+        `-t ${duration}`,   // ← duración TAMBIÉN en input, clave para no colgar
+        '-framerate 1',     // imagen estática: 1 fps de entrada es suficiente
       ])
       .outputOptions([
+        `-vf scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`,
         `-t ${duration}`,
+        `-r ${VIDEO_CONFIG.fps}`,
         `-c:v libx264`,
         `-preset ${VIDEO_CONFIG.preset}`,
         `-crf ${VIDEO_CONFIG.crf}`,
         `-pix_fmt yuv420p`,
-        `-r ${VIDEO_CONFIG.fps}`,
-        `-tune stillimage`,   // Optimización de ffmpeg para imágenes estáticas
+        `-tune stillimage`,
       ])
       .output(clipPath);
 
@@ -153,9 +146,6 @@ async function addAudio(videoPath, audioPath, tempDir) {
   return withAudioPath;
 }
 
-/**
- * Escapar texto para filtro drawtext de ffmpeg
- */
 function escapeDrawtext(text) {
   return text
     .replace(/\\/g, '\\\\')
@@ -201,8 +191,8 @@ async function addSubtitles(videoPath, vttPath, tempDir) {
     await runFfmpeg(
       ffmpeg()
         .input(videoPath)
-        .videoFilters(filters.join(','))
         .outputOptions([
+          `-vf ${filters.join(',')}`,
           `-c:v libx264`,
           `-preset ${VIDEO_CONFIG.preset}`,
           `-crf ${VIDEO_CONFIG.crf}`,
@@ -233,10 +223,8 @@ async function createIntro(title, tempDir) {
     ffmpeg()
       .input(`color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`)
       .inputOptions(['-f lavfi'])
-      .videoFilters([
-        `drawtext=text='${escapedTitle}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,0.3),t/0.3,if(lt(t,1.2),1,(${duration}-t)/0.3))'`,
-      ])
       .outputOptions([
+        `-vf drawtext=text='${escapedTitle}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,0.3),t/0.3,if(lt(t,1.2),1,(${duration}-t)/0.3))'`,
         `-t ${duration}`,
         `-c:v libx264`,
         `-preset ${VIDEO_CONFIG.preset}`,
@@ -265,11 +253,8 @@ async function createOutro(channelName, tempDir) {
     ffmpeg()
       .input(`color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`)
       .inputOptions(['-f lavfi'])
-      .videoFilters([
-        `drawtext=text='${channelText}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h/2)-80:alpha='if(lt(t,0.4),t/0.4,1)'`,
-        `drawtext=text='Suscribite para mas historias':fontsize=40:fontcolor=#FF0000:x=(w-text_w)/2:y=(h/2)+20:alpha='if(lt(t,0.6),0,if(lt(t,1),(t-0.6)/0.4,1))'`,
-      ])
       .outputOptions([
+        `-vf drawtext=text='${channelText}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h/2)-80:alpha='if(lt(t,0.4),t/0.4,1)',drawtext=text='Suscribite para mas historias':fontsize=40:fontcolor=#FF0000:x=(w-text_w)/2:y=(h/2)+20:alpha='if(lt(t,0.6),0,if(lt(t,1),(t-0.6)/0.4,1))'`,
         `-t ${duration}`,
         `-c:v libx264`,
         `-preset ${VIDEO_CONFIG.preset}`,
@@ -355,7 +340,7 @@ async function exportFinal(inputPath, outputPath) {
 }
 
 /**
- * Función principal: crear el Short completo
+ * Función principal
  */
 export async function createShort(scenes, imagePaths, audioPath, vttPath, outputPath, title) {
   const tempDir = path.dirname(outputPath);
