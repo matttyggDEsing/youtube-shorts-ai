@@ -19,10 +19,19 @@ export function addClient(clientId, res) {
   // Enviar evento de conexión establecida
   res.write(`data: ${JSON.stringify({ step: 'connected', progress: 0, message: 'Conexión establecida' })}\n\n`);
 
+  // Heartbeat cada 20s para evitar que el browser corte la conexión SSE
+  // durante procesos largos (generación de imágenes, ffmpeg, etc.)
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(`: ping\n\n`);
+    }
+  }, 20000);
+
   clients.set(clientId, res);
 
   // Limpiar al desconectar el cliente
   res.on('close', () => {
+    clearInterval(heartbeat);
     clients.delete(clientId);
   });
 }

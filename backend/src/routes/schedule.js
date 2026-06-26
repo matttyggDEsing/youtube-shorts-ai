@@ -15,7 +15,9 @@ const router = Router();
 router.get('/', (req, res) => {
   try {
     const status = getSchedulerStatus();
-    res.json({ success: true, schedule: status });
+    // Spread directo para que el frontend lea cfg.enabled, cfg.cronExpression, etc.
+    // sin tener que hacer cfg.schedule.enabled
+    res.json({ success: true, ...status });
   } catch (error) {
     logger.error(`Error leyendo scheduler: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
@@ -41,7 +43,7 @@ router.post('/', (req, res) => {
     const updated = updateConfig(newConfig);
 
     logger.ok(`Configuración del scheduler actualizada`);
-    res.json({ success: true, schedule: updated });
+    res.json({ success: true, ...updated });
 
   } catch (error) {
     logger.error(`Error actualizando scheduler: ${error.message}`);

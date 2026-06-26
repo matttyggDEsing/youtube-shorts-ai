@@ -44,7 +44,6 @@ export async function generateNarration(text, outputPath, voice = 'es-AR-ElenaNe
   const audioPath = `${outputPath}.mp3`;
   const vttPath   = `${outputPath}.vtt`;
   const outputDir = path.dirname(outputPath);
-  const outputFilename = path.basename(outputPath);
 
   logger.step(`Generando narración con voz "${voice}"...`);
 
@@ -52,17 +51,22 @@ export async function generateNarration(text, outputPath, voice = 'es-AR-ElenaNe
     const tts = new MsEdgeTTS();
     await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
 
-    // Usar texto plano — toFile con SSML no devuelve datos en esta versión
-    const { audioFilePath } = await tts.toFile(outputDir, text, outputFilename);
+    // toFile en msedge-tts v2 solo acepta (outputDir, text)
+    // El tercer parámetro NO existe — genera un nombre UUID interno
+    const result = await tts.toFile(outputDir, text);
+    const generatedPath = result?.audioFilePath;
 
-    // Renombrar si el path devuelto no coincide con el esperado
-    const resolvedAudio = audioFilePath ?? path.join(outputDir, outputFilename + '.mp3');
-    if (resolvedAudio !== audioPath && fs.existsSync(resolvedAudio)) {
-      fs.renameSync(resolvedAudio, audioPath);
+    if (!generatedPath || !fs.existsSync(generatedPath)) {
+      throw new Error('No audio data received');
+    }
+
+    // Renombrar el archivo UUID al nombre esperado
+    if (generatedPath !== audioPath) {
+      fs.renameSync(generatedPath, audioPath);
     }
 
     if (!fs.existsSync(audioPath) || fs.statSync(audioPath).size === 0) {
-      throw new Error('El archivo de audio generado está vacío o no existe');
+      throw new Error('El archivo de audio generado está vacío');
     }
 
     logger.ok(`Audio guardado: ${path.basename(audioPath)} (${fs.statSync(audioPath).size} bytes)`);

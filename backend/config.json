@@ -1,8 +1,17 @@
 {
-  "enabled": false,
+  "enabled": true,
   "cronExpression": "0 18 * * *",
-  "categoryRotation": ["terror", "misterio", "motivacion"],
+  "categoryRotation": [
+    "terror",
+    "misterio",
+    "motivacion",
+    "romance",
+    "historias_reales",
+    "ciencia_ficcion",
+    "leyendas",
+    "suspenso"
+  ],
   "currentIndex": 0,
   "autoUpload": true,
-  "voice": "es-AR-ElenaNeural"
+  "voice": "es-MX-DaliaNeural"
 }

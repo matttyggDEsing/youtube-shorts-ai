@@ -6,8 +6,12 @@ import ffmpeg from 'fluent-ffmpeg';
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { parseVtt } from './ttsNarrator.js';
 import { logger } from '../utils/logger.js';
+
+const execFileAsync = promisify(execFile);
 
 const VIDEO_CONFIG = {
   width: 1080,
@@ -19,12 +23,33 @@ const VIDEO_CONFIG = {
   crf: 26,
 };
 
+/**
+ * Obtener la ruta del binario ffmpeg
+ */
+function getFfmpegPath() {
+  return process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+}
+
 function runFfmpeg(command) {
   return new Promise((resolve, reject) => {
     command
       .on('end', resolve)
       .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)));
   });
+}
+
+/**
+ * Ejecutar ffmpeg directamente con execFile
+ * Evita el bug de fluent-ffmpeg en Windows donde el evento 'end'
+ * nunca dispara cuando se usa -loop 1 con libx264
+ */
+async function runFfmpegDirect(args) {
+  const bin = getFfmpegPath();
+  try {
+    await execFileAsync(bin, args, { timeout: 120000 });
+  } catch (err) {
+    throw new Error(`FFmpeg error: ${err.stderr || err.message}`);
+  }
 }
 
 /**
@@ -48,44 +73,39 @@ async function resizeImages(imagePaths, tempDir) {
 }
 
 /**
- * PASO 2: Imagen → clip de video usando lavfi + movie filter
- * Enfoque: generar video desde imagen con duración exacta, sin loop infinito
+ * PASO 2: Imagen → clip de video
+ * Usa execFile directamente para evitar el bug de fluent-ffmpeg en Windows
+ * con -loop 1 donde el evento 'end' nunca dispara.
  */
 async function imagesToClips(resizedPaths, scenes, tempDir) {
   logger.step('Convirtiendo imágenes a clips de video...');
   const clipPaths = [];
 
-  const W = VIDEO_CONFIG.width;
-  const H = VIDEO_CONFIG.height;
+  const W = String(VIDEO_CONFIG.width);
+  const H = String(VIDEO_CONFIG.height);
 
   for (let i = 0; i < resizedPaths.length; i++) {
     const scene    = scenes[i] || { duration: 8 };
-    const duration = scene.duration || 8;
+    const duration = String(scene.duration || 8);
     const clipPath = path.join(tempDir, `clip_${String(i + 1).padStart(3, '0')}.mp4`);
-    const imgPath  = resizedPaths[i].replace(/\\/g, '/');
+    const imgPath  = resizedPaths[i];
 
-    // Usar lavfi con movie source + loop — garantiza duración exacta
-    // movie=file:loop=0,trim=duration=N es la forma más confiable en Windows
-    const command = ffmpeg()
-      .input(imgPath)
-      .inputOptions([
-        '-loop 1',
-        `-t ${duration}`,   // ← duración TAMBIÉN en input, clave para no colgar
-        '-framerate 1',     // imagen estática: 1 fps de entrada es suficiente
-      ])
-      .outputOptions([
-        `-vf scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`,
-        `-t ${duration}`,
-        `-r ${VIDEO_CONFIG.fps}`,
-        `-c:v libx264`,
-        `-preset ${VIDEO_CONFIG.preset}`,
-        `-crf ${VIDEO_CONFIG.crf}`,
-        `-pix_fmt yuv420p`,
-        `-tune stillimage`,
-      ])
-      .output(clipPath);
+    const args = [
+      '-y',
+      '-loop', '1',
+      '-i', imgPath,
+      '-t', duration,
+      '-vf', `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`,
+      '-r', String(VIDEO_CONFIG.fps),
+      '-c:v', 'libx264',
+      '-preset', VIDEO_CONFIG.preset,
+      '-crf', String(VIDEO_CONFIG.crf),
+      '-pix_fmt', 'yuv420p',
+      '-tune', 'stillimage',
+      clipPath,
+    ];
 
-    await runFfmpeg(command);
+    await runFfmpegDirect(args);
     clipPaths.push(clipPath);
     logger.info(`Clip ${i + 1}/${resizedPaths.length} listo (${duration}s)`);
   }

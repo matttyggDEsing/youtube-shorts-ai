@@ -1,5 +1,45 @@
 [
   {
+    "id": "5a5a5ada-d053-4eb0-b4dd-6ce0fd07c125",
+    "title": "El Secreto de mi Abuelo",
+    "category": "historias_reales",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T03:39:51.266Z",
+    "duration": 0
+  },
+  {
+    "id": "f74eda15-a5a6-43ef-a785-84cd44f4e4b8",
+    "title": "La Llorona",
+    "category": "leyendas",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T03:05:53.693Z",
+    "duration": 0
+  },
+  {
+    "id": "af5d2d83-38d8-4c4c-b5dc-89b3ce7a8e87",
+    "title": "Sobreviví un vuelo aterrizado",
+    "category": "historias_reales",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T02:58:52.256Z",
+    "duration": 0
+  },
+  {
+    "id": "005c614e-f5af-470d-b061-91b81b48733d",
+    "title": "Un regalo inesperado",
+    "category": "historias_reales",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T02:33:20.611Z",
+    "duration": 0
+  },
+  {
     "id": "ed5e1c8e-0205-4da4-8d4b-18fa8010c025",
     "title": "Mundo Robot",
     "category": "ciencia_ficcion",
