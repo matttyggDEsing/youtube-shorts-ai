@@ -1,0 +1,8 @@
+file 'output/clip_001.mp4'
+file 'output/clip_002.mp4'
+file 'output/clip_003.mp4'
+file 'output/clip_004.mp4'
+file 'output/clip_005.mp4'
+file 'output/clip_006.mp4'
+file 'output/clip_007.mp4'
+file 'output/clip_008.mp4'

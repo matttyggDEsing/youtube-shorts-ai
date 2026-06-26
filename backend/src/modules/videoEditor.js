@@ -41,7 +41,7 @@ function runFfmpeg(command) {
 /**
  * Ejecutar ffmpeg directamente con execFile
  * Evita el bug de fluent-ffmpeg en Windows donde el evento 'end'
- * nunca dispara cuando se usa -loop 1 con libx264
+ * nunca dispara con -loop 1, -f concat, o inputs lavfi.
  */
 async function runFfmpegDirect(args) {
   const bin = getFfmpegPath();
@@ -116,6 +116,7 @@ async function imagesToClips(resizedPaths, scenes, tempDir) {
 
 /**
  * PASO 3: Concatenar clips en un solo video
+ * FIX: migrado a runFfmpegDirect — fluent-ffmpeg no dispara 'end' en Windows con -f concat
  */
 async function concatenateClips(clipPaths, tempDir) {
   logger.step('Concatenando clips...');
@@ -128,13 +129,15 @@ async function concatenateClips(clipPaths, tempDir) {
   );
 
   const joinedPath = path.join(tempDir, 'joined.mp4');
-  await runFfmpeg(
-    ffmpeg()
-      .input(concatFile)
-      .inputOptions(['-f concat', '-safe 0'])
-      .outputOptions(['-c copy'])
-      .output(joinedPath)
-  );
+
+  await runFfmpegDirect([
+    '-y',
+    '-f', 'concat',
+    '-safe', '0',
+    '-i', concatFile,
+    '-c', 'copy',
+    joinedPath,
+  ]);
 
   logger.ok('Clips concatenados exitosamente');
   return joinedPath;
@@ -239,20 +242,18 @@ async function createIntro(title, tempDir) {
   const W = VIDEO_CONFIG.width;
   const H = VIDEO_CONFIG.height;
 
-  await runFfmpeg(
-    ffmpeg()
-      .input(`color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`)
-      .inputOptions(['-f lavfi'])
-      .outputOptions([
-        `-vf drawtext=text='${escapedTitle}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,0.3),t/0.3,if(lt(t,1.2),1,(${duration}-t)/0.3))'`,
-        `-t ${duration}`,
-        `-c:v libx264`,
-        `-preset ${VIDEO_CONFIG.preset}`,
-        `-pix_fmt yuv420p`,
-        `-r ${VIDEO_CONFIG.fps}`,
-      ])
-      .output(introPath)
-  );
+  await runFfmpegDirect([
+    '-y',
+    '-f', 'lavfi',
+    '-i', `color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`,
+    '-vf', `drawtext=text='${escapedTitle}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,0.3),t/0.3,if(lt(t,1.2),1,(${duration}-t)/0.3))'`,
+    '-t', String(duration),
+    '-c:v', 'libx264',
+    '-preset', VIDEO_CONFIG.preset,
+    '-pix_fmt', 'yuv420p',
+    '-r', String(VIDEO_CONFIG.fps),
+    introPath,
+  ]);
 
   logger.ok('Intro creada');
   return introPath;
@@ -269,20 +270,18 @@ async function createOutro(channelName, tempDir) {
   const W = VIDEO_CONFIG.width;
   const H = VIDEO_CONFIG.height;
 
-  await runFfmpeg(
-    ffmpeg()
-      .input(`color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`)
-      .inputOptions(['-f lavfi'])
-      .outputOptions([
-        `-vf drawtext=text='${channelText}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h/2)-80:alpha='if(lt(t,0.4),t/0.4,1)',drawtext=text='Suscribite para mas historias':fontsize=40:fontcolor=#FF0000:x=(w-text_w)/2:y=(h/2)+20:alpha='if(lt(t,0.6),0,if(lt(t,1),(t-0.6)/0.4,1))'`,
-        `-t ${duration}`,
-        `-c:v libx264`,
-        `-preset ${VIDEO_CONFIG.preset}`,
-        `-pix_fmt yuv420p`,
-        `-r ${VIDEO_CONFIG.fps}`,
-      ])
-      .output(outroPath)
-  );
+  await runFfmpegDirect([
+    '-y',
+    '-f', 'lavfi',
+    '-i', `color=c=black:s=${W}x${H}:r=${VIDEO_CONFIG.fps}`,
+    '-vf', `drawtext=text='${channelText}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h/2)-80:alpha='if(lt(t,0.4),t/0.4,1)',drawtext=text='Suscribite para mas historias':fontsize=40:fontcolor=#FF0000:x=(w-text_w)/2:y=(h/2)+20:alpha='if(lt(t,0.6),0,if(lt(t,1),(t-0.6)/0.4,1))'`,
+    '-t', String(duration),
+    '-c:v', 'libx264',
+    '-preset', VIDEO_CONFIG.preset,
+    '-pix_fmt', 'yuv420p',
+    '-r', String(VIDEO_CONFIG.fps),
+    outroPath,
+  ]);
 
   logger.ok('Outro creada');
   return outroPath;
@@ -290,6 +289,8 @@ async function createOutro(channelName, tempDir) {
 
 /**
  * PASO 6c: Ensamblar intro + video + outro
+ * FIX: migrado a runFfmpegDirect — fluent-ffmpeg no dispara 'end' en Windows
+ * con inputs lavfi ni con -f concat
  */
 async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
   logger.step('Ensamblando intro + video + outro...');
@@ -297,23 +298,23 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
   const introWithAudio = path.join(tempDir, 'intro_audio.mp4');
   const outroWithAudio = path.join(tempDir, 'outro_audio.mp4');
 
-  await runFfmpeg(
-    ffmpeg()
-      .input(introPath)
-      .input('anullsrc=r=44100:cl=stereo')
-      .inputOptions(['-f lavfi'])
-      .outputOptions(['-c:v copy', '-c:a aac', '-shortest', '-map 0:v', '-map 1:a'])
-      .output(introWithAudio)
-  );
+  await runFfmpegDirect([
+    '-y',
+    '-i', introPath,
+    '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo',
+    '-c:v', 'copy', '-c:a', 'aac', '-shortest',
+    '-map', '0:v', '-map', '1:a',
+    introWithAudio,
+  ]);
 
-  await runFfmpeg(
-    ffmpeg()
-      .input(outroPath)
-      .input('anullsrc=r=44100:cl=stereo')
-      .inputOptions(['-f lavfi'])
-      .outputOptions(['-c:v copy', '-c:a aac', '-shortest', '-map 0:v', '-map 1:a'])
-      .output(outroWithAudio)
-  );
+  await runFfmpegDirect([
+    '-y',
+    '-i', outroPath,
+    '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo',
+    '-c:v', 'copy', '-c:a', 'aac', '-shortest',
+    '-map', '0:v', '-map', '1:a',
+    outroWithAudio,
+  ]);
 
   const finalConcatFile = path.join(tempDir, 'final_concat.txt');
   fs.writeFileSync(finalConcatFile, [
@@ -323,13 +324,15 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
   ].join('\n'), 'utf8');
 
   const assembledPath = path.join(tempDir, 'assembled.mp4');
-  await runFfmpeg(
-    ffmpeg()
-      .input(finalConcatFile)
-      .inputOptions(['-f concat', '-safe 0'])
-      .outputOptions(['-c copy'])
-      .output(assembledPath)
-  );
+
+  await runFfmpegDirect([
+    '-y',
+    '-f', 'concat',
+    '-safe', '0',
+    '-i', finalConcatFile,
+    '-c', 'copy',
+    assembledPath,
+  ]);
 
   logger.ok('Intro y outro ensamblados');
   return assembledPath;
@@ -363,7 +366,10 @@ async function exportFinal(inputPath, outputPath) {
  * Función principal
  */
 export async function createShort(scenes, imagePaths, audioPath, vttPath, outputPath, title) {
-  const tempDir = path.dirname(outputPath);
+  // FIX: usar el directorio del audio (temp/<id>/) como tempDir,
+  // no el directorio del output — en Windows path.dirname(outputPath)
+  // mezcla rutas y genera "output\output/clip_001.mp4"
+  const tempDir = path.dirname(audioPath);
 
   try {
     const resizedPaths  = await resizeImages(imagePaths, tempDir);

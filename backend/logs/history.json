@@ -1,5 +1,37 @@
 [
   {
+    "id": "53dfa8aa-c7a3-418d-93cf-e8674a3be19e",
+    "title": "Supera tus miedos",
+    "category": "motivacion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T16:54:34.201Z",
+    "duration": 11,
+    "error": "Error en montaje de video: FFmpeg error: ffmpeg version N-125299-gb2b37802a9-20260625 Copyright (c) 2000-2026 the FFmpeg developers\r\n  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)\r\n  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --disable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260625\r\n  libavutil      61.  0.100 / 61.  0.100\r\n  libavcodec     63.  0.100 / 63.  0.100\r\n  libavformat    63.  0.100 / 63.  0.100\r\n  libavdevice    63.  0.100 / 63.  0.100\r\n  libavfilter    12.  0.100 / 12.  0.100\r\n  libswscale     10.  0.100 / 10.  0.100\r\n  libswresample   7.  0.100 /  7.  0.100\r\n[in#0 @ 00000135373316c0] Impossible to open 'temp\\53dfa8aa-c7a3-418d-93cf-e8674a3be19e\\temp/53dfa8aa-c7a3-418d-93cf-e8674a3be19e/clip_001.mp4'\r\n[in#0 @ 000001353733c6c0] Error opening input: No such file or directory\r\nError opening input file temp\\53dfa8aa-c7a3-418d-93cf-e8674a3be19e\\concat.txt.\r\nError opening input files: No such file or directory\r\n"
+  },
+  {
+    "id": "62fd880c-7abf-440d-ab77-29c8389ab506",
+    "title": "Supera tus límites",
+    "category": "motivacion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T16:43:51.667Z",
+    "duration": 14,
+    "error": "Error en montaje de video: FFmpeg error: ffmpeg version N-125299-gb2b37802a9-20260625 Copyright (c) 2000-2026 the FFmpeg developers\r\n  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)\r\n  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --disable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260625\r\n  libavutil      61.  0.100 / 61.  0.100\r\n  libavcodec     63.  0.100 / 63.  0.100\r\n  libavformat    63.  0.100 / 63.  0.100\r\n  libavdevice    63.  0.100 / 63.  0.100\r\n  libavfilter    12.  0.100 / 12.  0.100\r\n  libswscale     10.  0.100 / 10.  0.100\r\n  libswresample   7.  0.100 /  7.  0.100\r\n[in#0 @ 000002adf8879080] Impossible to open 'output\\output/clip_001.mp4'\r\n[in#0 @ 000002adf886c700] Error opening input: No such file or directory\r\nError opening input file output\\concat.txt.\r\nError opening input files: No such file or directory\r\n"
+  },
+  {
+    "id": "8dc85ba4-fde4-4c18-9c54-2a352de3e598",
+    "title": "Amor en el Azar",
+    "category": "romance",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "processing",
+    "createdAt": "2026-06-26T16:36:54.535Z",
+    "duration": 0
+  },
+  {
     "id": "5a5a5ada-d053-4eb0-b4dd-6ce0fd07c125",
     "title": "El Secreto de mi Abuelo",
     "category": "historias_reales",
