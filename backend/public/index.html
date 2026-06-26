@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shorts Automático</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════ HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="28" height="20" rx="4" fill="#FF0000"/>
+          <polygon points="11,5 11,15 20,10" fill="white"/>
+        </svg>
+        <span class="logo-text">Shorts <span class="logo-accent">Automático</span></span>
+      </div>
+      <div class="system-status" id="systemStatus">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-label" id="statusLabel">Listo</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════ MAIN LAYOUT -->
+  <main class="main-grid">
+
+    <!-- ── COLUMNA IZQUIERDA ── -->
+    <div class="col-left">
+
+      <!-- ▸ CARD: GENERAR SHORT -->
+      <section class="card card--generate" id="generateCard">
+        <div class="card-header">
+          <h2 class="card-title">Generar Short</h2>
+          <p class="card-subtitle">Crea un video narrado completo en un clic.</p>
+        </div>
+
+        <div class="form-grid">
+          <!-- Categoría -->
+          <div class="field">
+            <label class="field-label" for="categorySelect">Categoría</label>
+            <div class="select-wrapper">
+              <select id="categorySelect" class="select">
+                <option value="terror">👻  Terror</option>
+                <option value="misterio">🔍  Misterio</option>
+                <option value="motivacion">🌟  Motivación</option>
+                <option value="romance">💫  Romance</option>
+                <option value="ciencia_ficcion">🚀  Ciencia Ficción</option>
+                <option value="historias_reales">📖  Historias Reales</option>
+                <option value="leyendas">🌑  Leyendas</option>
+                <option value="suspenso">🎭  Suspenso</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Voz -->
+          <div class="field">
+            <label class="field-label" for="voiceSelect">Voz narradora</label>
+            <div class="select-wrapper">
+              <select id="voiceSelect" class="select">
+                <option value="es-AR-ElenaNeural">🇦🇷  Elena – Argentina (femenina)</option>
+                <option value="es-MX-DaliaNeural">🇲🇽  Dalia – México (femenina)</option>
+                <option value="es-ES-AlvaroNeural">🇪🇸  Álvaro – España (masculina)</option>
+                <option value="es-MX-JorgeNeural">🇲🇽  Jorge – México (masculina)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toggle subida automática -->
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-label">Subir a YouTube automáticamente</span>
+            <span class="toggle-hint" id="ytToggleHint">Requiere cuenta conectada</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoUploadToggle" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <!-- Botón generar -->
+        <button class="btn btn--generate" id="generateBtn" onclick="App.startGeneration()">
+          <span class="btn-icon">▶</span>
+          <span class="btn-text">Generar Short</span>
+        </button>
+
+        <!-- ── PROGRESO ── -->
+        <div class="progress-panel" id="progressPanel" hidden>
+
+          <!-- Steps visuales -->
+          <div class="steps-track">
+            <div class="step" id="step-story" data-step="story">
+              <div class="step-icon">✦</div>
+              <div class="step-name">Historia</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step-tts" data-step="tts">
+              <div class="step-icon">🎙</div>
+              <div class="step-name">Voz</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step-images" data-step="images">
+              <div class="step-icon">🖼</div>
+              <div class="step-name">Imágenes</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step-video" data-step="video">
+              <div class="step-icon">🎬</div>
+              <div class="step-name">Video</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step-upload" data-step="upload">
+              <div class="step-icon">☁</div>
+              <div class="step-name">YouTube</div>
+            </div>
+          </div>
+
+          <!-- Barra de progreso -->
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+          </div>
+          <p class="progress-message" id="progressMessage">Iniciando…</p>
+        </div>
+
+        <!-- ── RESULTADO ── -->
+        <div class="result-panel" id="resultPanel" hidden>
+          <div class="result-header">
+            <span class="result-badge">✓ Video listo</span>
+          </div>
+          <video class="result-preview" id="resultVideo" controls></video>
+          <div class="result-actions">
+            <a class="btn btn--outline" id="ytLink" href="#" target="_blank" hidden>
+              Ver en YouTube ↗
+            </a>
+            <button class="btn btn--outline" onclick="App.resetForm()">Nuevo Short</button>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-panel" id="errorPanel" hidden>
+          <span class="error-icon">⚠</span>
+          <span class="error-msg" id="errorMsg"></span>
+        </div>
+      </section>
+
+    </div><!-- /col-left -->
+
+    <!-- ── COLUMNA DERECHA ── -->
+    <div class="col-right">
+
+      <!-- ▸ CARD: AUTOMATIZACIÓN -->
+      <section class="card" id="scheduleCard">
+        <div class="card-header">
+          <h2 class="card-title">Automatización</h2>
+          <p class="card-subtitle">Publica a una hora fija todos los días.</p>
+        </div>
+
+        <div class="toggle-row toggle-row--spaced">
+          <span class="toggle-label">Publicación automática</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="scheduleEnabled" onchange="Schedule.toggleEnabled()" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="schedule-options" id="scheduleOptions">
+          <div class="field">
+            <label class="field-label" for="scheduleTime">Hora de publicación</label>
+            <input type="time" class="input" id="scheduleTime" value="18:00" />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Días activos</label>
+            <div class="days-grid">
+              <label class="day-chip"><input type="checkbox" value="1" checked /><span>Lu</span></label>
+              <label class="day-chip"><input type="checkbox" value="2" checked /><span>Ma</span></label>
+              <label class="day-chip"><input type="checkbox" value="3" checked /><span>Mi</span></label>
+              <label class="day-chip"><input type="checkbox" value="4" checked /><span>Ju</span></label>
+              <label class="day-chip"><input type="checkbox" value="5" checked /><span>Vi</span></label>
+              <label class="day-chip"><input type="checkbox" value="6" /><span>Sá</span></label>
+              <label class="day-chip"><input type="checkbox" value="0" /><span>Do</span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Rotación de categorías</label>
+            <div class="rotation-list" id="rotationList">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+
+          <button class="btn btn--secondary" onclick="Schedule.save()">Guardar configuración</button>
+          <p class="save-feedback" id="scheduleFeedback"></p>
+        </div>
+      </section>
+
+      <!-- ▸ CARD: CONFIGURACIÓN -->
+      <section class="card" id="configCard">
+        <div class="card-header">
+          <h2 class="card-title">Configuración</h2>
+        </div>
+
+        <div class="config-row">
+          <label class="field-label">GROQ API Key</label>
+          <div class="input-inline">
+            <input type="password" class="input" id="groqKeyInput" placeholder="gsk_…" />
+            <button class="btn btn--sm" onclick="Config.verifyGroq()">Verificar</button>
+          </div>
+          <span class="config-status" id="groqStatus"></span>
+        </div>
+
+        <div class="config-row">
+          <label class="field-label">YouTube</label>
+          <div class="yt-status-row">
+            <span class="yt-status-badge" id="ytStatusBadge">Verificando…</span>
+            <button class="btn btn--sm btn--yt" id="ytConnectBtn" onclick="Config.connectYoutube()" hidden>
+              Conectar YouTube
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel OAuth -->
+        <div class="oauth-panel" id="oauthPanel" hidden>
+          <p class="oauth-instruction">
+            Abrí el enlace en tu navegador, autorizá el acceso y pegá el código aquí:
+          </p>
+          <a class="oauth-link" id="oauthLink" href="#" target="_blank">Abrir autorización ↗</a>
+          <div class="input-inline">
+            <input type="text" class="input" id="oauthCodeInput" placeholder="Código de autorización" />
+            <button class="btn btn--sm" onclick="Config.submitOAuthCode()">Confirmar</button>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /col-right -->
+
+  </main>
+
+  <!-- ══════════════════════════════════════════ HISTORIAL (full width) -->
+  <section class="section-history">
+    <div class="history-header">
+      <h2 class="section-title">Historial</h2>
+      <button class="btn btn--ghost btn--sm" onclick="History.load()">↺ Actualizar</button>
+    </div>
+    <div class="history-grid" id="historyGrid">
+      <div class="history-empty" id="historyEmpty">
+        Todavía no generaste ningún Short.
+      </div>
+    </div>
+  </section>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
