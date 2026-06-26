@@ -121,14 +121,14 @@ async function imagesToClips(resizedPaths, scenes, tempDir) {
 async function concatenateClips(clipPaths, tempDir) {
   logger.step('Concatenando clips...');
 
-  const concatFile = path.join(tempDir, 'concat.txt');
+  const concatFile = path.resolve(tempDir, 'concat.txt');
   fs.writeFileSync(
     concatFile,
-    clipPaths.map(p => `file '${p.replace(/\\/g, '/')}'`).join('\n'),
+    clipPaths.map(p => `file '${path.resolve(p).replace(/\\/g, '/')}'`).join('\n'),
     'utf8'
   );
 
-  const joinedPath = path.join(tempDir, 'joined.mp4');
+  const joinedPath = path.resolve(tempDir, 'joined.mp4');
 
   await runFfmpegDirect([
     '-y',
@@ -316,11 +316,11 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
     outroWithAudio,
   ]);
 
-  const finalConcatFile = path.join(tempDir, 'final_concat.txt');
+  const finalConcatFile = path.resolve(tempDir, 'final_concat.txt');
   fs.writeFileSync(finalConcatFile, [
-    `file '${introWithAudio.replace(/\\/g, '/')}'`,
-    `file '${mainVideoPath.replace(/\\/g, '/')}'`,
-    `file '${outroWithAudio.replace(/\\/g, '/')}'`,
+    `file '${path.resolve(introWithAudio).replace(/\\/g, '/')}'`,
+    `file '${path.resolve(mainVideoPath).replace(/\\/g, '/')}'`,
+    `file '${path.resolve(outroWithAudio).replace(/\\/g, '/')}'`,
   ].join('\n'), 'utf8');
 
   const assembledPath = path.join(tempDir, 'assembled.mp4');
@@ -369,7 +369,7 @@ export async function createShort(scenes, imagePaths, audioPath, vttPath, output
   // FIX: usar el directorio del audio (temp/<id>/) como tempDir,
   // no el directorio del output — en Windows path.dirname(outputPath)
   // mezcla rutas y genera "output\output/clip_001.mp4"
-  const tempDir = path.dirname(audioPath);
+  const tempDir = path.resolve(path.dirname(audioPath));
 
   try {
     const resizedPaths  = await resizeImages(imagePaths, tempDir);

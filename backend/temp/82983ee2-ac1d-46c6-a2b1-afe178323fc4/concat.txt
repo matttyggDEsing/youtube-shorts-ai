@@ -1,0 +1,8 @@
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_001.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_002.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_003.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_004.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_005.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_006.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_007.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/82983ee2-ac1d-46c6-a2b1-afe178323fc4/clip_008.mp4'
