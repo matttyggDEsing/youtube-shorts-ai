@@ -30,6 +30,7 @@ function getFfmpegPath() {
   return process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
 }
 
+// Mantenido por compatibilidad — solo usado en addSubtitles (fallback tolerante a errores)
 function runFfmpeg(command) {
   return new Promise((resolve, reject) => {
     command
@@ -41,7 +42,7 @@ function runFfmpeg(command) {
 /**
  * Ejecutar ffmpeg directamente con execFile
  * Evita el bug de fluent-ffmpeg en Windows donde el evento 'end'
- * nunca dispara con -loop 1, -f concat, o inputs lavfi.
+ * nunca dispara con -loop 1, -f concat, inputs lavfi, o mux de audio/video.
  */
 async function runFfmpegDirect(args) {
   const bin = getFfmpegPath();
@@ -145,25 +146,25 @@ async function concatenateClips(clipPaths, tempDir) {
 
 /**
  * PASO 4: Combinar video con narración de audio
+ * FIX: migrado a runFfmpegDirect — fluent-ffmpeg no dispara 'end' en Windows
+ * al muxear video + audio, dejando el proceso tildado indefinidamente.
  */
 async function addAudio(videoPath, audioPath, tempDir) {
   logger.step('Agregando narración de audio...');
   const withAudioPath = path.join(tempDir, 'with_audio.mp4');
 
-  await runFfmpeg(
-    ffmpeg()
-      .input(videoPath)
-      .input(audioPath)
-      .outputOptions([
-        '-c:v copy',
-        '-c:a aac',
-        `-b:a ${VIDEO_CONFIG.audioBitrate}`,
-        '-shortest',
-        '-map 0:v:0',
-        '-map 1:a:0',
-      ])
-      .output(withAudioPath)
-  );
+  await runFfmpegDirect([
+    '-y',
+    '-i', videoPath,
+    '-i', audioPath,
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    '-b:a', VIDEO_CONFIG.audioBitrate,
+    '-shortest',
+    '-map', '0:v:0',
+    '-map', '1:a:0',
+    withAudioPath,
+  ]);
 
   logger.ok('Audio agregado exitosamente');
   return withAudioPath;
@@ -181,6 +182,9 @@ function escapeDrawtext(text) {
 
 /**
  * PASO 5: Agregar subtítulos al video
+ * Nota: sigue usando runFfmpeg (fluent-ffmpeg) porque el filtro drawtext complejo
+ * es difícil de pasar sin escapado adicional via execFile. Si también se tilda,
+ * migrarlo a runFfmpegDirect igual que los otros pasos.
  */
 async function addSubtitles(videoPath, vttPath, tempDir) {
   logger.step('Agregando subtítulos...');
@@ -340,24 +344,24 @@ async function addIntroOutro(mainVideoPath, introPath, outroPath, tempDir) {
 
 /**
  * PASO 7: Exportar video final
+ * FIX: migrado a runFfmpegDirect — fluent-ffmpeg no dispara 'end' en Windows
+ * al recodificar el video final, dejando el proceso tildado indefinidamente.
  */
 async function exportFinal(inputPath, outputPath) {
   logger.step('Exportando video final...');
 
-  await runFfmpeg(
-    ffmpeg()
-      .input(inputPath)
-      .outputOptions([
-        `-c:v libx264`,
-        `-preset ${VIDEO_CONFIG.preset}`,
-        `-crf ${VIDEO_CONFIG.crf}`,
-        `-c:a aac`,
-        `-b:a ${VIDEO_CONFIG.audioBitrate}`,
-        `-movflags +faststart`,
-        `-pix_fmt yuv420p`,
-      ])
-      .output(outputPath)
-  );
+  await runFfmpegDirect([
+    '-y',
+    '-i', inputPath,
+    '-c:v', 'libx264',
+    '-preset', VIDEO_CONFIG.preset,
+    '-crf', String(VIDEO_CONFIG.crf),
+    '-c:a', 'aac',
+    '-b:a', VIDEO_CONFIG.audioBitrate,
+    '-movflags', '+faststart',
+    '-pix_fmt', 'yuv420p',
+    outputPath,
+  ]);
 
   logger.ok(`Video final exportado: ${path.basename(outputPath)}`);
 }
