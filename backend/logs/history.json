@@ -1,5 +1,54 @@
 [
   {
+    "id": "ebfadf09-48a2-4e49-854f-62c65996e002",
+    "title": "La noche del terror",
+    "category": "historias_reales",
+    "filePath": "output\\20260626191851_historias_reales_la-noche-del-terror.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T19:18:15.469Z",
+    "duration": 25,
+    "description": "Descubre la historia de una noche que cambió mi vida para siempre. ¡No te pierdas la parte 2! Suscríbete para más contenido.",
+    "tags": [
+      "terror",
+      "suspense",
+      "misterio",
+      "historias reales",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "49201b5d-c4d2-447c-a2e3-4adf601588f5",
+    "title": "La noche del terror",
+    "category": "terror",
+    "filePath": "output\\20260626191512_terror_la-noche-del-terror.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-06-26T19:14:39.055Z",
+    "duration": 25,
+    "description": "Vive conmigo una noche de terror en una casa embrujada. Suscríbete y no te pierdas la parte 2 para descubrir el final de esta historia.",
+    "tags": [
+      "terror",
+      "casa embrujada",
+      "miedo",
+      "sobrenatural",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "3d99dacc-8d91-41eb-8809-838e37f362a0",
+    "title": "La Casa de los Susurros",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T19:12:19.825Z",
+    "duration": 0,
+    "error": "tts.on is not a function"
+  },
+  {
     "id": "ad311ed0-ffc8-499e-90c4-4dd00e70cdd5",
     "title": "La Noche del Terror",
     "category": "terror",

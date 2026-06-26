@@ -4,15 +4,15 @@
 
 import cron from 'node-cron';
 import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 import { generateStory } from '../modules/storyGenerator.js';
 import { generateNarration } from '../modules/ttsNarrator.js';
-import { fetchSceneVideos } from '../modules/videoFetcher.js';     // ← NUEVO
+import { fetchSceneVideos } from '../modules/videoFetcher.js';
 import { createShort } from '../modules/videoEditor.js';
 import { uploadToYoutube, hasValidToken } from '../modules/youtubeUploader.js';
 import { generateOutputFilename, saveToHistory, cleanTempDir } from '../utils/fileManager.js';
-import { v4 as uuidv4 } from 'uuid';
-import path from 'path';
 
 const CONFIG_PATH = './config.json';
 let activeTask = null;
@@ -94,15 +94,15 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
 
     await createShort(
       story.scenes,
-      rawClips,      // ← clips reales en lugar de imagePaths
+      rawClips,
       audioPath,
       vttPath,
       outputPath,
       story.title
     );
 
-    historyEntry.filePath = outputPath;
-    historyEntry.status   = 'local';
+    historyEntry.filePath    = outputPath;
+    historyEntry.status      = 'local';
     historyEntry.description = story.description;
     historyEntry.tags        = story.tags;
     saveToHistory(historyEntry);
@@ -123,7 +123,6 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
         saveToHistory(historyEntry);
       } catch (uploadError) {
         logger.warn(`Error al subir a YouTube: ${uploadError.message}`);
-        // No fallar el pipeline si solo falla el upload
       }
     }
 
@@ -131,9 +130,9 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     try { cleanTempDir(tempDir); } catch { /* no crítico */ }
 
     emit('done', 100, '¡Short listo!', {
-      videoPath:  outputPath,
-      url:        historyEntry.youtubeUrl,
-      title:      story.title,
+      videoPath:       outputPath,
+      url:             historyEntry.youtubeUrl,
+      title:           story.title,
       durationSeconds,
     });
 
@@ -143,9 +142,7 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     historyEntry.status = 'failed';
     historyEntry.error  = error.message;
     saveToHistory(historyEntry);
-
     try { cleanTempDir(tempDir); } catch { /* no crítico */ }
-
     throw error;
   }
 }
@@ -166,7 +163,7 @@ export function getSchedulerStatus() {
 export function updateConfig(newConfig) {
   const cfg = { ...readConfig(), ...newConfig };
   writeConfig(cfg);
-  startScheduler(); // reiniciar con nueva config
+  startScheduler();
   return getSchedulerStatus();
 }
 
@@ -193,8 +190,6 @@ export function startScheduler() {
     const category = rotation[index];
 
     logger.ok(`Scheduler: generando Short de categoría "${category}"...`);
-
-    // Actualizar índice para la próxima ejecución
     writeConfig({ ...cfg, currentIndex: (index + 1) % rotation.length });
 
     try {
