@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "id": "66d1b841-5dd0-4659-9b5b-96bf3724265d",
+    "title": "La casa de mis pesadillas",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:33:59.930Z",
+    "duration": 0,
+    "error": "Error en TTS: undefined"
+  },
+  {
+    "id": "fedff719-5a07-4b27-93e0-01b9c2c41206",
+    "title": "La Llamada del Más Allá",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:33:52.497Z",
+    "duration": 0,
+    "error": "Error en TTS: undefined"
+  },
+  {
+    "id": "8d0930a2-a599-4f3a-abe0-05dc2ab4c0f7",
+    "title": "La Casa de las Sombras",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-06-26T00:33:40.195Z",
+    "duration": 0,
+    "error": "Error en TTS: undefined"
+  }
+]

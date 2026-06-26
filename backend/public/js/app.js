@@ -1,6 +1,6 @@
 /**
  * app.js — Panel de control de Shorts Automático
- * Comunicación con Express mediante fetch() + EventSource (SSE)
+ * Fix: startGeneration ahora abre SSE Y dispara POST /api/generate
  */
 
 /* ══════════════════════════════════════════════════════════════
@@ -49,14 +49,10 @@ function formatDate(iso) {
 ══════════════════════════════════════════════════════════════ */
 const App = (() => {
   let eventSource = null;
-  let generating = false;
+  let generating  = false;
 
-  function startGeneration() {
+  async function startGeneration() {
     if (generating) return;
-
-    const category   = $('categorySelect').value;
-    const voice      = $('voiceSelect').value;
-    const autoUpload = $('autoUploadToggle').checked;
 
     // Reset UI
     $('progressPanel').hidden = false;
@@ -73,14 +69,16 @@ const App = (() => {
     setSystemStatus('running', 'Generando');
     generating = true;
 
-    // Conectar al SSE
-    const params = new URLSearchParams({ category, voice, autoUpload });
-    eventSource = new EventSource(`/api/generate/stream?${params}`);
+    // ── PASO 1: Abrir canal SSE con clientId único ──────────
+    const clientId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+    eventSource = new EventSource(`/api/generate/stream?clientId=${clientId}`);
 
     eventSource.onmessage = (e) => {
       try {
-        const data = JSON.parse(e.data);
-        handleSSEEvent(data);
+        handleSSEEvent(JSON.parse(e.data));
       } catch (err) {
         console.error('Error parseando SSE:', err);
       }
@@ -88,36 +86,70 @@ const App = (() => {
 
     eventSource.onerror = () => {
       closeSSE();
-      showError('Error de conexión con el servidor. Revisá que esté corriendo en localhost:3000.');
+      showError('Error de conexión con el servidor. Verificá que esté corriendo en localhost:3000.');
       setSystemStatus('error', 'Error');
+      $('generateBtn').disabled = false;
       generating = false;
     };
+
+    // ── PASO 2: Disparar el pipeline con POST ───────────────
+    // (Esto faltaba — el SSE solo escucha, el POST arranca la generación)
+    try {
+      const res = await fetch('/api/generate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category:   $('categorySelect').value,
+          voice:      $('voiceSelect').value,
+          autoUpload: $('autoUploadToggle').checked,
+          clientId,   // el servidor lo usa para enviarle los eventos SSE
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error ?? 'No se pudo iniciar el pipeline.');
+        closeSSE();
+        $('generateBtn').disabled = false;
+        generating = false;
+      }
+    } catch (err) {
+      showError('No se pudo conectar con el servidor.');
+      closeSSE();
+      $('generateBtn').disabled = false;
+      generating = false;
+    }
   }
 
   function handleSSEEvent(data) {
     const { step, progress, message, url, videoPath, error } = data;
 
-    if (error) {
+    // El servidor manda step:'error' con campo error cuando algo falla
+    if (step === 'error' || error) {
       closeSSE();
-      showError(error);
+      showError(error || message || 'Error desconocido en el pipeline.');
       setSystemStatus('error', 'Error');
       $('generateBtn').disabled = false;
       generating = false;
       return;
     }
 
+    // Ignorar el evento inicial de conexión establecida
+    if (step === 'connected') return;
+
     setProgressFill(progress ?? 0);
     if (message) setProgressMessage(message);
 
-    // Actualizar steps
+    // Actualizar steps visuales
     if (step && step !== 'done') {
       const idx = STEP_ORDER.indexOf(step);
       STEP_ORDER.forEach((s, i) => {
         const el = $('step-' + s);
         if (!el) return;
-        if (i < idx)  el.className = 'step done';
+        if (i < idx)   el.className = 'step done';
         if (i === idx) el.className = 'step active';
-        if (i > idx)  el.className = 'step';
+        if (i > idx)   el.className = 'step';
       });
     }
 
@@ -143,7 +175,11 @@ const App = (() => {
 
     const video = $('resultVideo');
     if (videoPath) {
-      video.src = videoPath; // ruta relativa o URL de preview
+      // Construir URL de preview local desde la ruta de archivo
+      const previewUrl = videoPath.startsWith('/output')
+        ? videoPath
+        : '/output/' + videoPath.split(/[\\/]/).pop();
+      video.src    = previewUrl;
       video.hidden = false;
     } else {
       video.hidden = true;
@@ -151,7 +187,7 @@ const App = (() => {
 
     const ytLink = $('ytLink');
     if (youtubeUrl) {
-      ytLink.href = youtubeUrl;
+      ytLink.href   = youtubeUrl;
       ytLink.hidden = false;
     } else {
       ytLink.hidden = true;
@@ -213,7 +249,6 @@ const History = (() => {
 
     if (!items.length) {
       empty.hidden = false;
-      // Limpiar cards previos (excepto el empty)
       [...grid.children].forEach(c => { if (c !== empty) c.remove(); });
       return;
     }
@@ -221,15 +256,15 @@ const History = (() => {
     empty.hidden = true;
     [...grid.children].forEach(c => { if (c !== empty) c.remove(); });
 
-    [...items].reverse().forEach(item => {
+    [...items].forEach(item => {
       const card = buildCard(item);
       grid.appendChild(card);
     });
   }
 
   function buildCard(item) {
-    const cat   = CATEGORIES[item.category] ?? { label: item.category, emoji: '📹' };
-    const date  = formatDate(item.createdAt);
+    const cat = CATEGORIES[item.category] ?? { label: item.category, emoji: '📹' };
+    const date = formatDate(item.createdAt);
     const statusMap = {
       local:    { text: '⬤ Local',     cls: 'local' },
       uploaded: { text: '✓ Publicado', cls: 'uploaded' },
@@ -292,14 +327,13 @@ const Schedule = (() => {
 
   async function init() {
     try {
-      const res  = await fetch('/api/schedule');
-      const cfg  = await res.json();
+      const res = await fetch('/api/schedule');
+      const cfg = await res.json();
 
       $('scheduleEnabled').checked = cfg.enabled ?? false;
       toggleEnabled(cfg.enabled);
 
       if (cfg.cronExpression) {
-        // Parsear hora desde cron "0 HH * * *"
         const parts = cfg.cronExpression.split(' ');
         if (parts.length >= 2) {
           const hh = parts[1].padStart(2, '0');
@@ -312,7 +346,7 @@ const Schedule = (() => {
         rotationOrder = cfg.categoryRotation;
       }
     } catch {
-      // No se pudo cargar config, usar defaults
+      // Sin config, usar defaults
     }
 
     renderRotation();
@@ -320,7 +354,7 @@ const Schedule = (() => {
 
   function toggleEnabled(force) {
     const enabled = force !== undefined ? force : $('scheduleEnabled').checked;
-    $('scheduleOptions').style.opacity = enabled ? '1' : '0.45';
+    $('scheduleOptions').style.opacity       = enabled ? '1' : '0.45';
     $('scheduleOptions').style.pointerEvents = enabled ? 'auto' : 'none';
   }
 
@@ -344,7 +378,6 @@ const Schedule = (() => {
         <button class="rotation-remove" onclick="Schedule._removeFromRotation('${key}')" title="Quitar">×</button>
       `;
 
-      // Drag & drop
       item.addEventListener('dragstart', onDragStart);
       item.addEventListener('dragover',  onDragOver);
       item.addEventListener('drop',      onDrop);
@@ -352,7 +385,6 @@ const Schedule = (() => {
       list.appendChild(item);
     });
 
-    // Agregar categorías no incluidas
     const missing = Object.keys(CATEGORIES).filter(k => !rotationOrder.includes(k));
     if (missing.length) {
       const addRow = document.createElement('div');
@@ -386,7 +418,6 @@ const Schedule = (() => {
     e.preventDefault();
     const targetIdx = +e.currentTarget.dataset.idx;
     if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
-
     const moved = rotationOrder.splice(dragSrcIdx, 1)[0];
     rotationOrder.splice(targetIdx, 0, moved);
     renderRotation();
@@ -407,7 +438,6 @@ const Schedule = (() => {
     const timeVal = $('scheduleTime').value || '18:00';
     const [hh, mm] = timeVal.split(':').map(Number);
 
-    // Días seleccionados
     const days = [...document.querySelectorAll('.days-grid input:checked')]
       .map(el => el.value);
 
@@ -430,7 +460,7 @@ const Schedule = (() => {
         body:    JSON.stringify(cfg),
       });
       const data = await res.json();
-      if (data.ok) {
+      if (data.ok || data.success) {
         $('scheduleFeedback').textContent = '✓ Configuración guardada';
         setTimeout(() => { $('scheduleFeedback').textContent = ''; }, 3000);
         showToast('Automatización guardada.');
@@ -458,7 +488,7 @@ const Config = (() => {
     if (!key) { showToast('Ingresá una API key.'); return; }
 
     const statusEl = $('groqStatus');
-    statusEl.className = 'config-status check';
+    statusEl.className   = 'config-status check';
     statusEl.textContent = 'Verificando…';
 
     try {
@@ -493,7 +523,7 @@ const Config = (() => {
   }
 
   function renderYTStatus(connected) {
-    const badge     = $('ytStatusBadge');
+    const badge      = $('ytStatusBadge');
     const connectBtn = $('ytConnectBtn');
     const toggleHint = $('ytToggleHint');
 
@@ -516,12 +546,10 @@ const Config = (() => {
       const data = await res.json();
 
       if (data.authUrl) {
-        const panel  = $('oauthPanel');
-        const link   = $('oauthLink');
-        panel.hidden = false;
-        link.href    = data.authUrl;
-        link.textContent = 'Abrir autorización ↗';
-        showToast('Abrí el enlace de autorización.');
+        $('oauthPanel').hidden    = false;
+        $('oauthLink').href       = data.authUrl;
+        $('oauthLink').textContent = 'Abrir autorización ↗';
+        showToast('Abrí el enlace de autorización en tu navegador.');
       } else {
         showToast('No se pudo generar la URL de autorización.');
       }
@@ -542,7 +570,7 @@ const Config = (() => {
       });
       const data = await res.json();
 
-      if (data.ok) {
+      if (data.ok || data.success) {
         $('oauthPanel').hidden    = true;
         $('oauthCodeInput').value = '';
         renderYTStatus(true);
@@ -562,12 +590,10 @@ const Config = (() => {
    INIT — Al cargar la página
 ══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Inicializar módulos
   History.load();
   await Schedule.init();
   await Config.init();
 
-  // Comprobar conexión con el servidor
   try {
     await fetch('/api/categories');
     setSystemStatus('idle', 'Listo');
@@ -576,6 +602,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('⚠ No se puede conectar con localhost:3000');
   }
 
-  // Estado inicial del dot
   $('statusDot').className = 'status-dot idle';
 });

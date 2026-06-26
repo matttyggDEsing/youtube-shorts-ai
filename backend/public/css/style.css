@@ -212,9 +212,7 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 0 0 3px var(--red-glow);
 }
 
-input[type="time"].input {
-  color-scheme: dark;
-}
+input[type="time"].input { color-scheme: dark; }
 
 /* ══════════════════════════════════════
    TOGGLE SWITCH
@@ -233,9 +231,7 @@ input[type="time"].input {
 .toggle-row--spaced { margin-bottom: 20px; }
 
 .toggle-info { display: flex; flex-direction: column; gap: 2px; }
-
 .toggle-label { font-size: 0.9rem; font-weight: 500; }
-
 .toggle-hint { font-size: 0.76rem; color: var(--text-3); }
 
 .toggle-switch { position: relative; display: inline-block; flex-shrink: 0; }
@@ -287,7 +283,6 @@ input[type="time"].input {
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-/* Generate — grande, rojo */
 .btn--generate {
   width: 100%;
   padding: 15px 20px;
@@ -295,14 +290,12 @@ input[type="time"].input {
   background: var(--red);
   color: white;
   letter-spacing: -0.01em;
-  margin-bottom: 0;
   border-radius: var(--radius);
 }
 .btn--generate:hover:not(:disabled) { background: var(--red-dim); }
 
 .btn-icon { font-size: 0.9rem; }
 
-/* Secondary */
 .btn--secondary {
   width: 100%;
   padding: 11px 18px;
@@ -314,7 +307,6 @@ input[type="time"].input {
 }
 .btn--secondary:hover { background: var(--border); }
 
-/* Outline */
 .btn--outline {
   padding: 9px 16px;
   font-size: 0.86rem;
@@ -324,7 +316,6 @@ input[type="time"].input {
 }
 .btn--outline:hover { border-color: var(--text-2); }
 
-/* Small */
 .btn--sm {
   padding: 7px 14px;
   font-size: 0.82rem;
@@ -334,7 +325,6 @@ input[type="time"].input {
 }
 .btn--sm:hover { background: var(--border); }
 
-/* Ghost */
 .btn--ghost {
   background: transparent;
   color: var(--text-2);
@@ -342,7 +332,6 @@ input[type="time"].input {
 }
 .btn--ghost:hover { color: var(--text); border-color: var(--border); }
 
-/* YouTube */
 .btn--yt {
   background: var(--red-subtle);
   color: var(--red);
@@ -359,7 +348,6 @@ input[type="time"].input {
   padding-top: 22px;
 }
 
-/* Steps track */
 .steps-track {
   display: flex;
   align-items: center;
@@ -403,7 +391,6 @@ input[type="time"].input {
   transition: background var(--transition);
 }
 
-/* Estados del step */
 .step.active .step-icon {
   border-color: var(--yellow);
   background: var(--yellow-dim);
@@ -418,7 +405,6 @@ input[type="time"].input {
 }
 .step.done .step-name { color: var(--green); }
 
-/* Barra de progreso */
 .progress-bar-wrap {
   height: 4px;
   background: var(--surface-3);
@@ -495,8 +481,7 @@ input[type="time"].input {
 }
 
 .error-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
-
-.error-msg { font-size: 0.86rem; color: #ff6b6b; line-height: 1.5; }
+.error-msg  { font-size: 0.86rem; color: #ff6b6b; line-height: 1.5; }
 
 /* ══════════════════════════════════════
    SCHEDULE CARD
@@ -507,7 +492,6 @@ input[type="time"].input {
   gap: 18px;
 }
 
-/* Days grid */
 .days-grid {
   display: flex;
   gap: 6px;
@@ -537,7 +521,6 @@ input[type="time"].input {
   color: var(--red);
 }
 
-/* Rotation list */
 .rotation-list {
   display: flex;
   flex-direction: column;
@@ -557,16 +540,9 @@ input[type="time"].input {
 }
 
 .rotation-item:active { cursor: grabbing; }
-
-.rotation-drag { color: var(--text-3); font-size: 0.9rem; }
-
+.rotation-drag  { color: var(--text-3); font-size: 0.9rem; }
 .rotation-emoji { font-size: 1rem; }
-
-.rotation-name {
-  font-size: 0.86rem;
-  font-weight: 500;
-  flex: 1;
-}
+.rotation-name  { font-size: 0.86rem; font-weight: 500; flex: 1; }
 
 .rotation-remove {
   background: none;
@@ -585,7 +561,6 @@ input[type="time"].input {
   color: var(--green);
   text-align: center;
   min-height: 18px;
-  transition: opacity 0.3s;
 }
 
 /* ══════════════════════════════════════
@@ -599,22 +574,14 @@ input[type="time"].input {
 }
 .config-row:last-child { margin-bottom: 0; }
 
-.input-inline {
-  display: flex;
-  gap: 8px;
-}
+.input-inline { display: flex; gap: 8px; }
 .input-inline .input { flex: 1; }
 
-.config-status {
-  font-size: 0.8rem;
-  font-weight: 600;
-  min-height: 18px;
-}
+.config-status { font-size: 0.8rem; font-weight: 600; min-height: 18px; }
 .config-status.ok    { color: var(--green); }
 .config-status.fail  { color: var(--red); }
 .config-status.check { color: var(--yellow); }
 
-/* YouTube status */
 .yt-status-row {
   display: flex;
   align-items: center;
@@ -646,7 +613,6 @@ input[type="time"].input {
   color: #ff6b6b;
 }
 
-/* OAuth panel */
 .oauth-panel {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -659,13 +625,7 @@ input[type="time"].input {
 }
 
 .oauth-instruction { font-size: 0.84rem; color: var(--text-2); line-height: 1.5; }
-
-.oauth-link {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--red);
-  word-break: break-all;
-}
+.oauth-link { font-size: 0.84rem; font-weight: 600; color: var(--red); word-break: break-all; }
 
 /* ══════════════════════════════════════
    HISTORIAL
@@ -706,7 +666,6 @@ input[type="time"].input {
   border-radius: var(--radius-lg);
 }
 
-/* Historia card */
 .hcard {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -714,18 +673,7 @@ input[type="time"].input {
   overflow: hidden;
   transition: border-color var(--transition);
 }
-
 .hcard:hover { border-color: var(--border-hover); }
-
-.hcard-thumb {
-  width: 100%;
-  aspect-ratio: 9/5;
-  background: var(--surface-2);
-  object-fit: cover;
-  display: block;
-  position: relative;
-  overflow: hidden;
-}
 
 .hcard-thumb-placeholder {
   width: 100%;
@@ -782,10 +730,7 @@ input[type="time"].input {
 .hcard-status.uploaded { background: var(--green-dim);  color: var(--green); }
 .hcard-status.failed   { background: rgba(255,0,0,0.1); color: #ff6b6b; }
 
-.hcard-actions {
-  display: flex;
-  gap: 8px;
-}
+.hcard-actions { display: flex; gap: 8px; }
 
 /* ══════════════════════════════════════
    TOAST
@@ -824,24 +769,14 @@ input[type="time"].input {
    RESPONSIVE
 ══════════════════════════════════════ */
 @media (max-width: 900px) {
-  .main-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .col-right {
-    /* mantener orden visual */
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+  .main-grid { grid-template-columns: 1fr; }
+  .form-grid  { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
   .header-inner { padding: 0 16px; }
   .main-grid, .section-history { padding: 0 16px; }
   .card { padding: 20px; }
-  .steps-track { gap: 0; }
   .step-name { font-size: 0.65rem; }
   .step-icon { width: 32px; height: 32px; font-size: 0.85rem; }
 }
