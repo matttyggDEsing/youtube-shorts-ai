@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "cronExpression": "0 18 * * *",
+  "categoryRotation": ["terror", "misterio", "motivacion"],
+  "currentIndex": 0,
+  "autoUpload": true,
+  "voice": "es-AR-ElenaNeural"
+}

@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VOLUME = exports.RATE = exports.PITCH = exports.OUTPUT_FORMAT = exports.ProsodyOptions = exports.MsEdgeTTS = void 0;
+var MsEdgeTTS_1 = require("./MsEdgeTTS");
+Object.defineProperty(exports, "MsEdgeTTS", { enumerable: true, get: function () { return MsEdgeTTS_1.MsEdgeTTS; } });
+Object.defineProperty(exports, "ProsodyOptions", { enumerable: true, get: function () { return MsEdgeTTS_1.ProsodyOptions; } });
+var OUTPUT_FORMAT_1 = require("./OUTPUT_FORMAT");
+Object.defineProperty(exports, "OUTPUT_FORMAT", { enumerable: true, get: function () { return OUTPUT_FORMAT_1.OUTPUT_FORMAT; } });
+var PITCH_1 = require("./PITCH");
+Object.defineProperty(exports, "PITCH", { enumerable: true, get: function () { return PITCH_1.PITCH; } });
+var RATE_1 = require("./RATE");
+Object.defineProperty(exports, "RATE", { enumerable: true, get: function () { return RATE_1.RATE; } });
+var VOLUME_1 = require("./VOLUME");
+Object.defineProperty(exports, "VOLUME", { enumerable: true, get: function () { return VOLUME_1.VOLUME; } });
