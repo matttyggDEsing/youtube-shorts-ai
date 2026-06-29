@@ -13,5 +13,37 @@
   ],
   "currentIndex": 0,
   "autoUpload": true,
-  "voice": "es-MX-DaliaNeural"
+  "voice": "es-MX-DaliaNeural",
+
+  "live": {
+    "enabled": false,
+    "autoRestart": true,
+    "restartDelayMinutes": 5,
+    "maxConsecutiveErrors": 3,
+    "cronExpression": "0 20 * * *",
+    "durationHours": 8,
+    "category": "terror_misterio",
+    "backgroundType": "auto",
+    "voice": "es-MX-DaliaNeural",
+    "thumbnailStyle": "dark",
+    "categoryRotation": [
+      "terror_misterio",
+      "musica_estudiar",
+      "motivacion",
+      "musica_dormir",
+      "lofi"
+    ],
+    "currentLiveIndex": 0,
+    "privacyStatus": "public",
+    "enableDvr": true,
+    "recordFromStart": true,
+    "abTestThumbnails": false,
+    "communityPostOnStart": false,
+    "pinnedCommentEnabled": true,
+    "scheduleOptimization": {
+      "timezone": "America/Argentina/Buenos_Aires",
+      "preferredDays": [1, 2, 3, 4, 5],
+      "avoidHours": [2, 3, 4, 5]
+    }
+  }
 }

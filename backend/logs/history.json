@@ -1,13 +1,194 @@
 [
   {
+    "id": "53258413-73ee-4663-8b09-9d6d29cf9550",
+    "title": "Caída en el abismo",
+    "category": "motivacion",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/yCL4UhOIg74",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T19:16:19.514Z",
+    "duration": 20,
+    "description": "Descubre cómo mi vida cambió para siempre en un solo día. ¡Suscríbete y no te pierdas la parte 2! ¡Comenta abajo qué crees que pasará después!",
+    "tags": [
+      "motivación",
+      "superación",
+      "historias de vida",
+      "resiliencia",
+      "éxito desde cero",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "yCL4UhOIg74",
+    "fileDeleted": true
+  },
+  {
+    "id": "5cef1cc3-94df-4b12-826c-6e410799b8c4",
+    "title": "La verdad oculta detrás",
+    "category": "misterio",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/Ws9kyK9aeN4",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T19:13:34.670Z",
+    "duration": 26,
+    "description": "Descubre el misterio que nadie quería que supieras. ¡Suscríbete y no te pierdas la parte 2! ¿Quieres saber la verdad detrás de la mentira? ¡Sigue mirando y no te arrepentirás!",
+    "tags": [
+      "misterio",
+      "verdad",
+      "oculto",
+      "suspense",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "Ws9kyK9aeN4",
+    "fileDeleted": true
+  },
+  {
+    "id": "6d61b7bc-ff71-4916-8557-18a44af800f1",
+    "title": "La figura en el techo",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/Hec50PV4JC4",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T19:10:48.077Z",
+    "duration": 25,
+    "description": "Descubre el terror que me acechaba en mi propia casa. ¡Suscríbete y no te pierdas la parte 2! ¿Qué secretos se esconden en las sombras?",
+    "tags": [
+      "terror",
+      "casa embrujada",
+      "entidades sobrenaturales",
+      "miedo psicológico",
+      "apariciones",
+      "maldiciones"
+    ],
+    "youtubeId": "Hec50PV4JC4",
+    "fileDeleted": true
+  },
+  {
+    "id": "c3b59aac-a0be-4cdd-a619-426d3364b15f",
+    "title": "El secreto que me destruyó",
+    "category": "suspenso",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/NL6ueaMWaKg",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T19:07:43.252Z",
+    "duration": 27,
+    "description": "Descubre la verdad detrás de mi historia. Suscríbete y mira la parte 2 para saber qué pasó después. Esta historia te dejará sin aliento.",
+    "tags": [
+      "suspenso",
+      "misterio",
+      "thriller",
+      "historias",
+      "shorts",
+      "latinoamérica"
+    ],
+    "youtubeId": "NL6ueaMWaKg",
+    "fileDeleted": true
+  },
+  {
+    "id": "17fef0e0-dd1a-4c89-9f9f-a7b3a56cd5dd",
+    "title": "La Llorona me encontró",
+    "category": "leyendas",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/w4yHpsz5lL8",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T19:04:56.477Z",
+    "duration": 18,
+    "description": "Si crees en las leyendas, prepárate para esta historia de terror. La Llorona me encontró en un lugar donde no debería estar. ¡No te pierdas la parte 2! Suscríbete y activa la campana para no perderte nada.",
+    "tags": [
+      "leyendas",
+      "terror",
+      "misterio",
+      "La Llorona",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "w4yHpsz5lL8",
+    "fileDeleted": true
+  },
+  {
+    "id": "944e7dcb-2be4-42d6-abc1-ebedfa0d5dcb",
+    "title": "El secreto de mi pasado",
+    "category": "historias_reales",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/QTQRFXR9lE4",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T19:01:58.786Z",
+    "duration": 24,
+    "description": "Descubre el secreto que cambiaria mi vida para siempre. No te pierdas la parte 2, suscríbete ahora y activa la campana para no perderte nada.",
+    "tags": [
+      "historias reales",
+      "misterio",
+      "suspense",
+      "secreto",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "QTQRFXR9lE4",
+    "fileDeleted": true
+  },
+  {
+    "id": "4140887f-a35c-4ee8-bb5c-bc8b86d40426",
+    "title": "La verdad oculta",
+    "category": "ciencia_ficcion",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/1kSHd9ErbYw",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T18:58:56.921Z",
+    "duration": 24,
+    "description": "Descubre la verdad oculta detrás de la inteligencia artificial. ¡Susciríbete y espera la parte 2! La IA me reveló un secreto que cambió mi vida para siempre. ¿Quieres saber qué es?",
+    "tags": [
+      "ciencia ficción",
+      "inteligencia artificial",
+      "futuro distópico",
+      "suspense",
+      "misterio",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "1kSHd9ErbYw",
+    "fileDeleted": true
+  },
+  {
+    "id": "9b767719-88e4-43df-9946-67e97a301585",
+    "title": "Engaño",
+    "category": "romance",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/lqULTZpM2c4",
+    "status": "uploaded",
+    "createdAt": "2026-06-29T18:56:01.821Z",
+    "duration": 27,
+    "description": "Una historia de amor y engaño que te dejará sin aliento. ¡Suscríbete y mira la parte 2! No te pierdas el final de esta historia impactante.",
+    "tags": [
+      "amor",
+      "engaño",
+      "suspense",
+      "romance",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "lqULTZpM2c4",
+    "fileDeleted": true
+  },
+  {
     "id": "602b123f-49dc-42f1-99ae-2eea084593c3",
     "title": "Mi historia de lucha",
     "category": "motivacion",
     "filePath": "",
-    "youtubeUrl": null,
-    "status": "processing",
+    "youtubeUrl": "https://youtu.be/mYES48JEZrc",
+    "status": "uploaded",
     "createdAt": "2026-06-29T18:53:31.729Z",
-    "duration": 0
+    "duration": 23,
+    "description": "Descubre cómo logré superar mis obstáculos y alcanzar el éxito. ¡No te pierdas la parte 2! Suscríbete para más historias inspiradoras.",
+    "tags": [
+      "motivacion",
+      "superacion",
+      "exito",
+      "historias",
+      "shorts",
+      "inspirador"
+    ],
+    "youtubeId": "mYES48JEZrc",
+    "fileDeleted": true
   },
   {
     "id": "174fcdd7-134d-4b2e-849f-1b2036201089",
