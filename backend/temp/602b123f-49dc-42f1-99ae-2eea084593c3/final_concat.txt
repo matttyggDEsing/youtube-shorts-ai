@@ -1,0 +1,3 @@
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/602b123f-49dc-42f1-99ae-2eea084593c3/intro_audio.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/602b123f-49dc-42f1-99ae-2eea084593c3/with_subs.mp4'
+file 'C:/Users/Maty/Desktop/youtube-shorts-ai/backend/temp/602b123f-49dc-42f1-99ae-2eea084593c3/outro_audio.mp4'

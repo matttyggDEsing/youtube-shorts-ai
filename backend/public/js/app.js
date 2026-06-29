@@ -1,6 +1,7 @@
 /**
  * app.js — Panel de control de Shorts Automático
  * Fix #2: History.load() ahora lee data.history (el endpoint devuelve { success, history: [] })
+ * + Loop: módulo Loop para modo de generación continua
  */
 
 /* ══════════════════════════════════════════════════════════════
@@ -54,7 +55,6 @@ const App = (() => {
   async function startGeneration() {
     if (generating) return;
 
-    // Reset UI
     $('progressPanel').hidden = false;
     $('resultPanel').hidden   = true;
     $('errorPanel').hidden    = true;
@@ -69,7 +69,6 @@ const App = (() => {
     setSystemStatus('running', 'Generando');
     generating = true;
 
-    // ── PASO 1: Abrir canal SSE con clientId único ──────────
     const clientId = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID()
       : Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -92,7 +91,6 @@ const App = (() => {
       generating = false;
     };
 
-    // ── PASO 2: Disparar el pipeline con POST ───────────────
     try {
       const res = await fetch('/api/generate', {
         method:  'POST',
@@ -232,7 +230,6 @@ const History = (() => {
     try {
       const res  = await fetch('/api/history');
       const data = await res.json();
-      // FIX: el endpoint devuelve { success, history: [] }, no un array directo
       const items = Array.isArray(data.history) ? data.history : [];
       render(items);
     } catch {
@@ -584,12 +581,171 @@ const Config = (() => {
 })();
 
 /* ══════════════════════════════════════════════════════════════
+   MÓDULO: Loop — Generación continua
+══════════════════════════════════════════════════════════════ */
+const Loop = (() => {
+  let pollInterval = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  function setBadge(text, type) {
+    const badge = el('loopStatusBadge');
+    if (!badge) return;
+    // tipos: idle | active | error | warning
+    badge.className = `loop-badge loop-badge--${type}`;
+    badge.innerHTML = `<span class="loop-badge-dot"></span>${text}`;
+  }
+
+  function setError(msg) {
+    const panel    = el('loopErrorMsg');
+    const textSpan = el('loopErrorText');
+    if (!panel) return;
+    if (msg) {
+      if (textSpan) textSpan.textContent = msg;
+      panel.classList.add('visible');
+    } else {
+      panel.classList.remove('visible');
+    }
+  }
+
+  function updateUI(status) {
+    const { running, currentCategory, completedCount, consecutiveErrors, lastVideoUrl, lastError } = status;
+
+    if (running) {
+      setBadge('Activo', 'active');
+    } else if (consecutiveErrors >= 3) {
+      setBadge('Detenido por errores', 'error');
+    } else {
+      setBadge('Inactivo', 'idle');
+    }
+
+    const counterEl = el('loopCompletedCount');
+    if (counterEl) counterEl.textContent = completedCount;
+
+    const catEl = el('loopCurrentCategory');
+    if (catEl) catEl.textContent = currentCategory ?? '—';
+
+    const linkEl = el('loopLastVideoUrl');
+    if (linkEl) {
+      if (lastVideoUrl) {
+        linkEl.innerHTML = `<a href="${lastVideoUrl}" target="_blank" rel="noopener">${lastVideoUrl}</a>`;
+      } else {
+        linkEl.textContent = '—';
+      }
+    }
+
+    if (!running && consecutiveErrors >= 3 && lastError) {
+      setError(`Loop detenido tras 3 errores consecutivos. Último error: ${lastError}`);
+    } else {
+      setError(null);
+    }
+
+    const startBtn = el('loopStartBtn');
+    const stopBtn  = el('loopStopBtn');
+    if (startBtn) startBtn.disabled = running;
+    if (stopBtn)  stopBtn.disabled  = !running;
+  }
+
+  function startPolling() {
+    if (pollInterval) return;
+    pollInterval = setInterval(async () => {
+      const status = await pollStatus();
+      if (!status.running) stopPolling();
+    }, 3000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  }
+
+  async function pollStatus() {
+    try {
+      const res = await fetch('/api/loop/status');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const status = await res.json();
+      updateUI(status);
+      return status;
+    } catch (err) {
+      console.error('[Loop] Error al obtener estado:', err);
+      return { running: false, consecutiveErrors: 0 };
+    }
+  }
+
+  async function start() {
+    setError(null);
+    setBadge('Iniciando…', 'warning');
+
+    try {
+      const res = await fetch('/api/loop/start', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voice:             el('loopVoiceSelect')?.value || undefined,
+          delayBetweenVideos: Number(el('loopDelayInput')?.value || 30),
+          autoUpload:        true,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.message || 'No se pudo iniciar el loop.');
+        setBadge('Error', 'error');
+        return;
+      }
+
+      setBadge('Activo', 'active');
+      const startBtn = el('loopStartBtn');
+      const stopBtn  = el('loopStopBtn');
+      if (startBtn) startBtn.disabled = true;
+      if (stopBtn)  stopBtn.disabled  = false;
+
+      startPolling();
+    } catch (err) {
+      console.error('[Loop] Error al iniciar:', err);
+      setError('Error de red al iniciar el loop.');
+      setBadge('Error', 'error');
+    }
+  }
+
+  async function stop() {
+    setBadge('Deteniendo…', 'warning');
+    try {
+      const res  = await fetch('/api/loop/stop', { method: 'POST' });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.message || 'No se pudo detener el loop.');
+        setBadge('Activo', 'active');
+        return;
+      }
+
+      stopPolling();
+      setBadge('Inactivo', 'idle');
+      const startBtn = el('loopStartBtn');
+      const stopBtn  = el('loopStopBtn');
+      if (startBtn) startBtn.disabled = false;
+      if (stopBtn)  stopBtn.disabled  = true;
+    } catch (err) {
+      console.error('[Loop] Error al detener:', err);
+      setError('Error de red al detener el loop.');
+    }
+  }
+
+  function init() {
+    pollStatus(); // carga estado inicial sin arrancar polling
+  }
+
+  return { start, stop, pollStatus, init };
+})();
+
+/* ══════════════════════════════════════════════════════════════
    INIT — Al cargar la página
 ══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
   History.load();
   await Schedule.init();
   await Config.init();
+  Loop.init();
 
   try {
     await fetch('/api/categories');

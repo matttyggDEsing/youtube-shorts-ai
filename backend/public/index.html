@@ -7,6 +7,127 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Loop Section ─────────────────────────────────────── */
+    .section-loop {
+      max-width: var(--max-w, 1200px);
+      margin: 0 auto 2rem;
+      padding: 0 var(--page-px, 1.5rem);
+    }
+    .loop-card {
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: var(--radius, 14px);
+      overflow: hidden;
+    }
+    .loop-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid var(--border, #e5e7eb);
+      gap: 1rem;
+    }
+    .loop-title-group { display: flex; align-items: center; gap: .75rem; }
+    .loop-card-header h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .loop-card-header p  { font-size: .8rem; color: var(--text-muted, #6b7280); margin: 0; }
+    .loop-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .72rem;
+      font-weight: 600;
+      padding: .25rem .65rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: background .2s, color .2s;
+    }
+    .loop-badge--idle    { background: #f3f4f6; color: #6b7280; }
+    .loop-badge--active  { background: #dcfce7; color: #16a34a; }
+    .loop-badge--error   { background: #fee2e2; color: #dc2626; }
+    .loop-badge--warning { background: #fef9c3; color: #ca8a04; }
+    .loop-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+    .loop-badge--active .loop-badge-dot {
+      animation: pulse-dot 1.4s ease infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; } 50% { opacity: .3; }
+    }
+
+    .loop-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .loop-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
+    .loop-field { display: flex; flex-direction: column; gap: .35rem; min-width: 140px; }
+    .loop-field label { font-size: .75rem; font-weight: 600; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; }
+    .loop-field select,
+    .loop-field input[type="number"] {
+      font-size: .875rem;
+      padding: .45rem .75rem;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: var(--radius-sm, 8px);
+      background: var(--input-bg, #f9fafb);
+      color: var(--text, #111827);
+      outline: none;
+      transition: border-color .15s;
+    }
+    .loop-field select:focus,
+    .loop-field input:focus { border-color: var(--accent, #6366f1); }
+    .loop-field input[type="number"] { width: 90px; }
+
+    .loop-btns { display: flex; gap: .5rem; margin-left: auto; }
+    .btn--loop-start {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .875rem; font-weight: 600;
+      padding: .5rem 1.1rem;
+      border-radius: var(--radius-sm, 8px);
+      border: none; cursor: pointer;
+      background: #16a34a; color: #fff;
+      transition: background .15s, opacity .15s;
+    }
+    .btn--loop-start:hover:not(:disabled) { background: #15803d; }
+    .btn--loop-start:disabled { opacity: .4; cursor: not-allowed; }
+    .btn--loop-stop {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .875rem; font-weight: 600;
+      padding: .5rem 1.1rem;
+      border-radius: var(--radius-sm, 8px);
+      border: 1px solid #fca5a5; cursor: pointer;
+      background: #fff; color: #dc2626;
+      transition: background .15s, opacity .15s;
+    }
+    .btn--loop-stop:hover:not(:disabled) { background: #fee2e2; }
+    .btn--loop-stop:disabled { opacity: .4; cursor: not-allowed; }
+
+    .loop-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
+    .loop-stat {
+      background: var(--input-bg, #f9fafb);
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: var(--radius-sm, 8px);
+      padding: .75rem 1rem;
+    }
+    .loop-stat-label { font-size: .7rem; font-weight: 600; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; }
+    .loop-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text, #111827); line-height: 1.2; word-break: break-all; }
+    .loop-stat-value a { font-size: .8rem; font-weight: 500; color: var(--accent, #6366f1); text-decoration: none; }
+    .loop-stat-value a:hover { text-decoration: underline; }
+    #loopCurrentCategory { font-size: .875rem; text-transform: capitalize; }
+
+    .loop-error {
+      display: none;
+      align-items: flex-start;
+      gap: .6rem;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius-sm, 8px);
+      padding: .75rem 1rem;
+      font-size: .825rem;
+      color: #b91c1c;
+    }
+    .loop-error.visible { display: flex; }
+    .loop-error-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+  </style>
 </head>
 <body>
 
@@ -241,6 +362,77 @@
     </div><!-- /col-right -->
 
   </main>
+
+  <!-- ══════════════════════════════════════════ MODO LOOP (full width) -->
+  <section class="section-loop">
+    <div class="loop-card">
+
+      <!-- Header -->
+      <div class="loop-card-header">
+        <div class="loop-title-group">
+          <div>
+            <h2>🔁 Modo Loop</h2>
+            <p>Genera y sube videos sin parar, rotando categorías automáticamente.</p>
+          </div>
+        </div>
+        <span id="loopStatusBadge" class="loop-badge loop-badge--idle">
+          <span class="loop-badge-dot"></span>Inactivo
+        </span>
+      </div>
+
+      <!-- Body -->
+      <div class="loop-body">
+
+        <!-- Controles -->
+        <div class="loop-controls">
+          <div class="loop-field">
+            <label for="loopVoiceSelect">Voz</label>
+            <select id="loopVoiceSelect">
+              <option value="es-AR-ElenaNeural">🇦🇷 Elena</option>
+              <option value="es-MX-DaliaNeural">🇲🇽 Dalia</option>
+              <option value="es-ES-AlvaroNeural">🇪🇸 Álvaro</option>
+              <option value="es-MX-JorgeNeural">🇲🇽 Jorge</option>
+            </select>
+          </div>
+          <div class="loop-field">
+            <label for="loopDelayInput">Delay (seg)</label>
+            <input type="number" id="loopDelayInput" value="30" min="5" max="600" />
+          </div>
+          <div class="loop-btns">
+            <button id="loopStartBtn" class="btn--loop-start" onclick="Loop.start()">
+              ▶ Iniciar Loop
+            </button>
+            <button id="loopStopBtn" class="btn--loop-stop" onclick="Loop.stop()" disabled>
+              ⏹ Detener
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats en tiempo real -->
+        <div class="loop-stats">
+          <div class="loop-stat">
+            <div class="loop-stat-label">Videos completados</div>
+            <div class="loop-stat-value" id="loopCompletedCount">0</div>
+          </div>
+          <div class="loop-stat">
+            <div class="loop-stat-label">Categoría actual</div>
+            <div class="loop-stat-value" id="loopCurrentCategory">—</div>
+          </div>
+          <div class="loop-stat" style="grid-column: span 2;">
+            <div class="loop-stat-label">Último video subido</div>
+            <div class="loop-stat-value" id="loopLastVideoUrl">—</div>
+          </div>
+        </div>
+
+        <!-- Error panel -->
+        <div class="loop-error" id="loopErrorMsg" role="alert">
+          <span class="loop-error-icon">⚠</span>
+          <span id="loopErrorText"></span>
+        </div>
+
+      </div><!-- /loop-body -->
+    </div><!-- /loop-card -->
+  </section>
 
   <!-- ══════════════════════════════════════════ HISTORIAL (full width) -->
   <section class="section-history">

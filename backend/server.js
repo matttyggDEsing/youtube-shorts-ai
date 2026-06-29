@@ -18,6 +18,7 @@ import generateRoutes from './src/routes/generate.js';
 import historyRoutes  from './src/routes/history.js';
 import scheduleRoutes from './src/routes/schedule.js';
 import youtubeRoutes  from './src/routes/youtube.js';
+import loopRoutes     from './src/routes/loop.js';      // ← nuevo
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -35,6 +36,7 @@ app.use('/api/generate',  generateRoutes);
 app.use('/api/history',   historyRoutes);
 app.use('/api/schedule',  scheduleRoutes);
 app.use('/api/youtube',   youtubeRoutes);
+app.use('/api/loop',      loopRoutes);                  // ← nuevo
 
 // Categorías disponibles
 app.get('/api/categories', (req, res) => {
@@ -81,10 +83,8 @@ app.use((err, req, res, next) => {
 
 // ── Arranque ──────────────────────────────────────────────
 async function init() {
-  // Crear directorios necesarios
   ensureDirectories();
 
-  // Iniciar servidor
   app.listen(PORT, () => {
     logger.ok(`════════════════════════════════════════`);
     logger.ok(`  YouTube Shorts AI — Puerto ${PORT}`);
@@ -96,7 +96,6 @@ async function init() {
     }
   });
 
-  // Iniciar scheduler de publicación automática
   startScheduler();
 }
 
