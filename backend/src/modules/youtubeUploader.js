@@ -11,7 +11,10 @@ import { logger } from '../utils/logger.js';
 
 const CREDENTIALS_PATH = './credentials/credentials.json';
 const TOKEN_PATH        = './credentials/token.json';
-const SCOPES            = ['https://www.googleapis.com/auth/youtube.upload'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube',
+];
 
 /**
  * Crear cliente OAuth2 desde credentials.json

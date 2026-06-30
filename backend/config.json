@@ -16,7 +16,7 @@
   "voice": "es-MX-DaliaNeural",
 
   "live": {
-    "enabled": false,
+    "enabled": true,
     "autoRestart": true,
     "restartDelayMinutes": 5,
     "maxConsecutiveErrors": 3,

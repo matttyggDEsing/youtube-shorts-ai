@@ -1,42 +1,47 @@
 // ════════════════════════════════════════
 // SERVER.JS — Servidor principal Express
 // YouTube Shorts AI Automation
+// + Módulo de Directos Automatizados
 // ════════════════════════════════════════
 
 import 'dotenv/config';
 import express from 'express';
-import path from 'path';
+import fs      from 'fs';
+import path    from 'path';
 import { fileURLToPath } from 'url';
 
 import { ensureDirectories } from './src/utils/fileManager.js';
-import { startScheduler } from './src/scheduler/cronScheduler.js';
-import { getCategories } from './src/modules/storyGenerator.js';
-import { logger } from './src/utils/logger.js';
+import { startScheduler }    from './src/scheduler/cronScheduler.js';
+import { startLiveScheduler } from './src/scheduler/liveScheduler.js';   // ← NUEVO
+import { getCategories }     from './src/modules/storyGenerator.js';
+import { logger }            from './src/utils/logger.js';
 
 // Rutas
 import generateRoutes from './src/routes/generate.js';
 import historyRoutes  from './src/routes/history.js';
 import scheduleRoutes from './src/routes/schedule.js';
 import youtubeRoutes  from './src/routes/youtube.js';
-import loopRoutes     from './src/routes/loop.js';      // ← nuevo
+import loopRoutes     from './src/routes/loop.js';
+import liveRoutes     from './src/routes/live.js';                        // ← NUEVO
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-// ── Middleware ────────────────────────────────────────────
+// ── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Rutas API ─────────────────────────────────────────────
+// ── Rutas API ─────────────────────────────────────────────────────────────────
 app.use('/api/generate',  generateRoutes);
 app.use('/api/history',   historyRoutes);
 app.use('/api/schedule',  scheduleRoutes);
 app.use('/api/youtube',   youtubeRoutes);
-app.use('/api/loop',      loopRoutes);                  // ← nuevo
+app.use('/api/loop',      loopRoutes);
+app.use('/api/live',      liveRoutes);                                    // ← NUEVO
 
 // Categorías disponibles
 app.get('/api/categories', (req, res) => {
@@ -61,7 +66,7 @@ app.get('/api/status', (req, res) => {
   res.json({
     success: true,
     status: 'online',
-    version: '1.0.0',
+    version: '1.1.0',
     groqConfigured: !!process.env.GROQ_API_KEY,
     timestamp: new Date().toISOString(),
   });
@@ -75,15 +80,16 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ── Manejo de errores global ──────────────────────────────
+// ── Manejo de errores global ──────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   logger.error(`Error no controlado: ${err.message}`);
   res.status(500).json({ success: false, error: 'Error interno del servidor' });
 });
 
-// ── Arranque ──────────────────────────────────────────────
+// ── Arranque ──────────────────────────────────────────────────────────────────
 async function init() {
   ensureDirectories();
+  ensureAssetDirectories();  // ← NUEVO: crea carpetas para assets de directos
 
   app.listen(PORT, () => {
     logger.ok(`════════════════════════════════════════`);
@@ -97,6 +103,20 @@ async function init() {
   });
 
   startScheduler();
+  startLiveScheduler();  // ← NUEVO: inicia el cron de directos si live.enabled=true
+}
+
+// Crea las carpetas necesarias para el módulo de directos
+function ensureAssetDirectories() {
+  const dirs = [
+    './assets/backgrounds',
+    './assets/audio',
+    './output/live_thumbnails',
+    './logs',
+  ];
+  for (const dir of dirs) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 }
 
 init().catch((error) => {
