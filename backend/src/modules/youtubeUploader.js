@@ -13,7 +13,7 @@ const CREDENTIALS_PATH = './credentials/credentials.json';
 const TOKEN_PATH        = './credentials/token.json';
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.upload',
-  'https://www.googleapis.com/auth/youtube',
+  'https://www.googleapis.com/auth/youtube.force-ssl', // necesario para listar/borrar videos
 ];
 
 /**
@@ -187,6 +187,34 @@ export async function uploadToYoutube(videoPath, { title, description, tags, cat
 }
 
 /**
+ * Leer los scopes que quedaron efectivamente otorgados en el token guardado.
+ * Google devuelve el campo "scope" (string separado por espacios) al hacer el
+ * intercambio de código por token.
+ */
+function getGrantedScopes() {
+  try {
+    if (!fs.existsSync(TOKEN_PATH)) return [];
+    const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+    if (!token.scope) return [];
+    return token.scope.split(' ');
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Verifica si el token actual tiene TODOS los scopes que la app necesita hoy.
+ * Si en algún momento se agregan más scopes (como pasó con force-ssl para
+ * poder listar/borrar videos), un token viejo sigue siendo "válido" según
+ * hasValidToken() pero le va a faltar este scope → hay que reconectar.
+ */
+export function hasRequiredScopes() {
+  const granted = getGrantedScopes();
+  if (!granted.length) return false; // tokens viejos sin "scope" guardado: forzamos reconexión
+  return SCOPES.every(scope => granted.includes(scope));
+}
+
+/**
  * Verificar el estado de la conexión con YouTube
  * @returns {Object} Estado de la conexión
  */
@@ -195,12 +223,14 @@ export async function checkYoutubeStatus() {
   const tokenExists      = hasValidToken();
 
   if (!credentialsExist) {
-    return { connected: false, reason: 'Sin credentials.json' };
+    return { connected: false, scopesOk: false, reason: 'Sin credentials.json' };
   }
 
   if (!tokenExists) {
-    return { connected: false, reason: 'Sin token válido de autorización' };
+    return { connected: false, scopesOk: false, reason: 'Sin token válido de autorización' };
   }
+
+  const scopesOk = hasRequiredScopes();
 
   try {
     const auth    = await getAuthenticatedClient();
@@ -208,8 +238,136 @@ export async function checkYoutubeStatus() {
 
     await youtube.channels.list({ part: ['snippet'], mine: true });
 
-    return { connected: true };
+    return {
+      connected: true,
+      scopesOk,
+      reason: scopesOk
+        ? undefined
+        : 'Falta el permiso de administración (youtube.force-ssl). Reconectá para poder listar/borrar videos.',
+    };
   } catch (error) {
-    return { connected: false, reason: error.message };
+    return { connected: false, scopesOk: false, reason: error.message };
   }
 }
+
+/**
+ * Obtener el ID de la playlist de "subidos" del canal autenticado.
+ */
+async function getUploadsPlaylistId(youtube) {
+  const res = await youtube.channels.list({
+    part: ['contentDetails'],
+    mine: true,
+  });
+
+  const channel = res.data.items?.[0];
+  if (!channel) throw new Error('No se pudo obtener el canal autenticado.');
+
+  return channel.contentDetails.relatedPlaylists.uploads;
+}
+
+/**
+ * Recorrer toda la playlist de subidos y devolver los videoIds (paginado).
+ */
+async function getAllUploadedVideoIds(youtube, uploadsPlaylistId) {
+  const ids = [];
+  let pageToken = undefined;
+
+  do {
+    const res = await youtube.playlistItems.list({
+      part: ['contentDetails'],
+      playlistId: uploadsPlaylistId,
+      maxResults: 50,
+      pageToken,
+    });
+
+    for (const item of res.data.items || []) {
+      ids.push(item.contentDetails.videoId);
+    }
+
+    pageToken = res.data.nextPageToken;
+  } while (pageToken);
+
+  return ids;
+}
+
+/**
+ * Dado un listado de videoIds, traer snippet + statistics en lotes de 50
+ * (es el máximo que acepta videos.list por request).
+ */
+async function getVideosDetails(youtube, videoIds) {
+  const details = [];
+
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const batch = videoIds.slice(i, i + 50);
+    const res = await youtube.videos.list({
+      part: ['snippet', 'statistics'],
+      id: batch,
+    });
+
+    for (const item of res.data.items || []) {
+      details.push({
+        videoId:      item.id,
+        title:        item.snippet.title,
+        publishedAt:  item.snippet.publishedAt,
+        thumbnail:    item.snippet.thumbnails?.default?.url || '',
+        viewCount:    Number(item.statistics.viewCount ?? 0),
+        url:          `https://youtu.be/${item.id}`,
+      });
+    }
+  }
+
+  return details;
+}
+
+/**
+ * Listar todos los videos del canal cuyo viewCount sea menor al umbral dado.
+ * @param {number} maxViews - umbral exclusivo (viewCount < maxViews)
+ * @returns {Promise<Array>} lista de videos { videoId, title, viewCount, url, ... }
+ */
+export async function listLowViewVideos(maxViews = 10) {
+  const auth    = await getAuthenticatedClient();
+  const youtube = google.youtube({ version: 'v3', auth });
+
+  const uploadsPlaylistId = await getUploadsPlaylistId(youtube);
+  const videoIds          = await getAllUploadedVideoIds(youtube, uploadsPlaylistId);
+
+  if (!videoIds.length) return [];
+
+  const details = await getVideosDetails(youtube, videoIds);
+
+  return details
+    .filter(v => v.viewCount < maxViews)
+    .sort((a, b) => a.viewCount - b.viewCount);
+}
+
+/**
+ * Borrar una lista de videos por ID. Sigue borrando aunque alguno falle,
+ * y devuelve el detalle de qué se borró y qué no.
+ * @param {string[]} videoIds
+ * @returns {Promise<{deleted: string[], failed: {videoId: string, error: string}[]}>}
+ */
+export async function deleteVideos(videoIds) {
+  const auth    = await getAuthenticatedClient();
+  const youtube = google.youtube({ version: 'v3', auth });
+
+  const deleted = [];
+  const failed  = [];
+
+  for (const videoId of videoIds) {
+    try {
+      await youtube.videos.delete({ id: videoId });
+      deleted.push(videoId);
+      logger.ok(`Video borrado: ${videoId}`);
+    } catch (error) {
+      const msg = error?.errors?.[0]?.message || error.message;
+      failed.push({ videoId, error: msg });
+      logger.error(`No se pudo borrar ${videoId}: ${msg}`);
+    }
+  }
+
+  return { deleted, failed };
+}
+
+
+
+

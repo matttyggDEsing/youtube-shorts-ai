@@ -1,13 +1,66 @@
 [
   {
+    "id": "a3b32de1-4a70-46b3-bd22-32eab8dc060a",
+    "title": "La IA me engañó",
+    "category": "ciencia_ficcion",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/t1pbD36gcSI",
+    "status": "uploaded",
+    "createdAt": "2026-06-30T19:07:43.552Z",
+    "duration": 26,
+    "description": "Descubre cómo la inteligencia artificial cambió mi vida para siempre. Suscríbete y no te pierdas la parte 2 de esta historia de ciencia ficción. ¿Qué secreto esconden las máquinas?",
+    "tags": [
+      "ciencia ficción",
+      "inteligencia artificial",
+      "futuro",
+      "distópico",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "t1pbD36gcSI",
+    "fileDeleted": true
+  },
+  {
+    "id": "f06cf45e-d93d-44d1-b36a-554b920e1ddf",
+    "title": "Amor tóxico",
+    "category": "romance",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/2Y52APc1Gag",
+    "status": "uploaded",
+    "createdAt": "2026-06-30T19:03:11.130Z",
+    "duration": 29,
+    "description": "Escucha mi historia de amor y pérdida. No te pierdas la parte 2, ¡suscríbete ahora! Esta historia te dejará sin aliento.",
+    "tags": [
+      "amor",
+      "pasion",
+      "romance",
+      "corazon",
+      "sorpresa",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "2Y52APc1Gag",
+    "fileDeleted": true
+  },
+  {
     "id": "cfa0c855-33f4-4f8d-a702-e9120357443e",
     "title": "Toqué fondo",
     "category": "motivacion",
     "filePath": "",
-    "youtubeUrl": null,
-    "status": "processing",
+    "youtubeUrl": "https://youtu.be/7npjOnOjg2c",
+    "status": "uploaded",
     "createdAt": "2026-06-30T18:58:46.350Z",
-    "duration": 0
+    "duration": 28,
+    "description": "Descubre mi historia de superación personal. ¿Podrás creer lo que pasó? Suscríbete y mira la parte 2 para saber más.",
+    "tags": [
+      "motivacion",
+      "superacion",
+      "resiliencia",
+      "exito",
+      "vida"
+    ],
+    "youtubeId": "7npjOnOjg2c",
+    "fileDeleted": true
   },
   {
     "id": "931ee7ee-e48e-419f-8c52-7457209eac51",

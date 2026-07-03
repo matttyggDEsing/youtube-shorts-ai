@@ -21,6 +21,37 @@ const CATEGORIES = {
 const STEP_ORDER = ['story', 'tts', 'images', 'video', 'upload'];
 
 /* ══════════════════════════════════════════════════════════════
+   MÓDULO: Theme — modo claro/oscuro persistente
+══════════════════════════════════════════════════════════════ */
+const Theme = (() => {
+  const KEY = 'shorts-ai-theme';
+
+  function apply(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = document.getElementById('themeToggleIcon');
+    if (icon) icon.textContent = theme === 'dark' ? '☀' : '🌙';
+  }
+
+  function toggle() {
+    const current = localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(KEY, next);
+    apply(next);
+  }
+
+  function init() {
+    const saved = localStorage.getItem(KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    apply(theme);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.addEventListener('click', toggle);
+  }
+
+  return { init, toggle };
+})();
+
+/* ══════════════════════════════════════════════════════════════
    UTILIDADES GLOBALES
 ══════════════════════════════════════════════════════════════ */
 function $(id) { return document.getElementById(id); }
@@ -59,6 +90,7 @@ const App = (() => {
     $('resultPanel').hidden   = true;
     $('errorPanel').hidden    = true;
     $('generateBtn').disabled = true;
+    $('generateBtn').classList.add('is-loading');
 
     STEP_ORDER.forEach(s => {
       const el = $('step-' + s);
@@ -88,6 +120,7 @@ const App = (() => {
       showError('Error de conexión con el servidor. Verificá que esté corriendo en localhost:3000.');
       setSystemStatus('error', 'Error');
       $('generateBtn').disabled = false;
+      $('generateBtn').classList.remove('is-loading');
       generating = false;
     };
 
@@ -109,12 +142,14 @@ const App = (() => {
         showError(data.error ?? 'No se pudo iniciar el pipeline.');
         closeSSE();
         $('generateBtn').disabled = false;
+        $('generateBtn').classList.remove('is-loading');
         generating = false;
       }
     } catch (err) {
       showError('No se pudo conectar con el servidor.');
       closeSSE();
       $('generateBtn').disabled = false;
+      $('generateBtn').classList.remove('is-loading');
       generating = false;
     }
   }
@@ -127,6 +162,7 @@ const App = (() => {
       showError(error || message || 'Error desconocido en el pipeline.');
       setSystemStatus('error', 'Error');
       $('generateBtn').disabled = false;
+      $('generateBtn').classList.remove('is-loading');
       generating = false;
       return;
     }
@@ -158,6 +194,7 @@ const App = (() => {
       closeSSE();
       setSystemStatus('done', 'Listo');
       $('generateBtn').disabled = false;
+      $('generateBtn').classList.remove('is-loading');
       generating = false;
       History.load();
     }
@@ -210,6 +247,7 @@ const App = (() => {
     $('errorPanel').hidden    = true;
     $('progressPanel').hidden = true;
     $('generateBtn').disabled = false;
+    $('generateBtn').classList.remove('is-loading');
     setProgressFill(0);
     STEP_ORDER.forEach(s => {
       const el = $('step-' + s);
@@ -227,6 +265,7 @@ const App = (() => {
 ══════════════════════════════════════════════════════════════ */
 const History = (() => {
   async function load() {
+    showSkeleton();
     try {
       const res  = await fetch('/api/history');
       const data = await res.json();
@@ -234,6 +273,24 @@ const History = (() => {
       render(items);
     } catch {
       render([]);
+    }
+  }
+
+  function showSkeleton(count = 4) {
+    const grid  = $('historyGrid');
+    const empty = $('historyEmpty');
+    empty.hidden = true;
+    [...grid.children].forEach(c => { if (c !== empty) c.remove(); });
+
+    for (let i = 0; i < count; i++) {
+      const sk = document.createElement('div');
+      sk.className = 'hcard-skeleton';
+      sk.innerHTML = `
+        <div class="sk-thumb"></div>
+        <div class="sk-line"></div>
+        <div class="sk-line sk-line--short"></div>
+      `;
+      grid.appendChild(sk);
     }
   }
 
@@ -510,26 +567,33 @@ const Config = (() => {
     try {
       const res  = await fetch('/api/youtube/status');
       const data = await res.json();
-      renderYTStatus(data.connected);
+      renderYTStatus(data.connected, data.scopesOk);
     } catch {
-      renderYTStatus(false);
+      renderYTStatus(false, false);
     }
   }
 
-  function renderYTStatus(connected) {
+  function renderYTStatus(connected, scopesOk) {
     const badge      = $('ytStatusBadge');
     const connectBtn = $('ytConnectBtn');
     const toggleHint = $('ytToggleHint');
 
-    if (connected) {
-      badge.className   = 'yt-status-badge connected';
-      badge.textContent = '✓ Conectado';
-      connectBtn.hidden = true;
+    if (connected && scopesOk) {
+      badge.className    = 'yt-status-badge connected';
+      badge.textContent  = '✓ Conectado';
+      connectBtn.hidden  = true;
       if (toggleHint) toggleHint.textContent = 'Cuenta conectada';
+    } else if (connected && !scopesOk) {
+      badge.className    = 'yt-status-badge warning';
+      badge.textContent  = '⚠ Falta permiso nuevo';
+      connectBtn.hidden  = false;
+      connectBtn.textContent = 'Reconectar YouTube';
+      if (toggleHint) toggleHint.textContent = 'Reconectá para habilitar borrado de videos';
     } else {
-      badge.className   = 'yt-status-badge disconnected';
-      badge.textContent = '✗ No conectado';
-      connectBtn.hidden = false;
+      badge.className    = 'yt-status-badge disconnected';
+      badge.textContent  = '✗ No conectado';
+      connectBtn.hidden  = false;
+      connectBtn.textContent = 'Conectar YouTube';
       if (toggleHint) toggleHint.textContent = 'Requiere cuenta conectada';
     }
   }
@@ -739,9 +803,165 @@ const Loop = (() => {
 })();
 
 /* ══════════════════════════════════════════════════════════════
+   MÓDULO: Cleanup — buscar y borrar videos con pocas vistas
+══════════════════════════════════════════════════════════════ */
+const Cleanup = (() => {
+  let videos = []; // último resultado de búsqueda
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  async function search() {
+    const max = Number($('cleanupMaxViews').value) || 10;
+    const btn = $('cleanupSearchBtn');
+    const resultsEl = $('cleanupResults');
+    const emptyEl = $('cleanupEmpty');
+
+    btn.disabled = true;
+    btn.textContent = 'Buscando…';
+    resultsEl.innerHTML = '';
+    emptyEl.hidden = true;
+    $('cleanupSelectAllBtn').hidden = true;
+    $('cleanupDeleteBtn').hidden = true;
+
+    try {
+      const res = await fetch(`/api/youtube/low-views?max=${encodeURIComponent(max)}`);
+      const data = await res.json();
+
+      if (!data.success) {
+        showToast(data.hint ? `${data.error} — ${data.hint}` : `Error: ${data.error ?? 'no se pudo buscar'}`);
+        return;
+      }
+
+      videos = data.videos ?? [];
+
+      if (!videos.length) {
+        emptyEl.hidden = false;
+        return;
+      }
+
+      render();
+      $('cleanupSelectAllBtn').hidden = false;
+      updateSelectedCount();
+    } catch {
+      showToast('No se pudo conectar con el servidor.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Buscar videos';
+    }
+  }
+
+  function render() {
+    const resultsEl = $('cleanupResults');
+    resultsEl.innerHTML = '';
+
+    videos.forEach(v => {
+      const row = document.createElement('div');
+      row.className = 'cleanup-row';
+      row.dataset.videoId = v.videoId;
+      row.innerHTML = `
+        <input type="checkbox" class="cleanup-check" checked onchange="Cleanup.updateSelectedCount()" />
+        <img class="cleanup-thumb" src="${escapeHtml(v.thumbnail)}" alt="" loading="lazy" />
+        <div class="cleanup-info">
+          <div class="cleanup-title">${escapeHtml(v.title)}</div>
+          <div class="cleanup-meta">${formatDate(v.publishedAt)}</div>
+        </div>
+        <span class="cleanup-views">${v.viewCount} vistas</span>
+        <a href="${escapeHtml(v.url)}" target="_blank">Ver ↗</a>
+      `;
+      resultsEl.appendChild(row);
+    });
+  }
+
+  function toggleSelectAll() {
+    const checks = document.querySelectorAll('.cleanup-check');
+    const allChecked = [...checks].every(c => c.checked);
+    checks.forEach(c => { c.checked = !allChecked; });
+    updateSelectedCount();
+  }
+
+  function updateSelectedCount() {
+    const checks = [...document.querySelectorAll('.cleanup-check')];
+    const selected = checks.filter(c => c.checked).length;
+    $('cleanupSelectedCount').textContent = selected;
+    $('cleanupDeleteBtn').hidden = selected === 0;
+  }
+
+  async function deleteSelected() {
+    const checks = [...document.querySelectorAll('.cleanup-check')].filter(c => c.checked);
+    if (!checks.length) return;
+
+    const count = checks.length;
+    const confirmed = confirm(
+      `Vas a borrar ${count} video${count === 1 ? '' : 's'} de YouTube de forma permanente. ¿Confirmás?`
+    );
+    if (!confirmed) return;
+
+    const btn = $('cleanupDeleteBtn');
+    btn.disabled = true;
+
+    const rows = checks.map(c => c.closest('.cleanup-row'));
+    rows.forEach(r => r.classList.add('is-deleting'));
+
+    const videoIds = rows.map(r => r.dataset.videoId);
+
+    try {
+      const res = await fetch('/api/youtube/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoIds }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showToast('Error: ' + (data.error ?? 'no se pudo borrar'));
+        rows.forEach(r => r.classList.remove('is-deleting'));
+        return;
+      }
+
+      const deletedSet = new Set(data.deleted || []);
+      const failedMap = new Map((data.failed || []).map(f => [f.videoId, f.error]));
+
+      rows.forEach(r => {
+        const id = r.dataset.videoId;
+        r.classList.remove('is-deleting');
+        if (deletedSet.has(id)) {
+          r.classList.add('is-deleted');
+          setTimeout(() => r.remove(), 600);
+        } else if (failedMap.has(id)) {
+          r.classList.add('is-failed');
+          const meta = r.querySelector('.cleanup-meta');
+          if (meta) meta.textContent = 'Error: ' + failedMap.get(id);
+        }
+      });
+
+      videos = videos.filter(v => !deletedSet.has(v.videoId));
+
+      showToast(`✓ ${data.deleted.length} borrados${data.failed.length ? `, ${data.failed.length} con error` : ''}.`);
+      updateSelectedCount();
+
+      if (!videos.length) {
+        setTimeout(() => { $('cleanupEmpty').hidden = false; }, 700);
+      }
+    } catch {
+      showToast('No se pudo conectar con el servidor.');
+      rows.forEach(r => r.classList.remove('is-deleting'));
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  return { search, toggleSelectAll, updateSelectedCount, deleteSelected };
+})();
+
+/* ══════════════════════════════════════════════════════════════
    INIT — Al cargar la página
 ══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
+  Theme.init();
   History.load();
   await Schedule.init();
   await Config.init();
@@ -757,3 +977,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   $('statusDot').className = 'status-dot idle';
 });
+
+
+

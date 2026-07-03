@@ -11,6 +11,9 @@ import {
   uploadToYoutube,
   checkYoutubeStatus,
   hasValidToken,
+  hasRequiredScopes,
+  listLowViewVideos,
+  deleteVideos,
 } from '../modules/youtubeUploader.js';
 import { getHistoryEntry, saveToHistory } from '../utils/fileManager.js';
 import { logger } from '../utils/logger.js';
@@ -162,5 +165,75 @@ router.get('/preview/:id', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+/**
+ * GET /api/youtube/low-views?max=10
+ * Lista los videos del canal con menos de `max` vistas (default 10).
+ */
+router.get('/low-views', async (req, res) => {
+  const max = Number(req.query.max) || 10;
+
+  if (!hasValidToken()) {
+    return res.status(401).json({ success: false, error: 'No hay token de YouTube. Autorizá la app primero.' });
+  }
+  if (!hasRequiredScopes()) {
+    return res.status(403).json({
+      success: false,
+      error: 'El token actual no tiene el permiso de administración de YouTube.',
+      hint: 'Reconectá tu cuenta desde Configuración → Conectar/Reconectar YouTube para otorgar el nuevo permiso.',
+      needsReauth: true,
+    });
+  }
+
+  try {
+    const videos = await listLowViewVideos(max);
+    res.json({ success: true, count: videos.length, videos });
+  } catch (error) {
+    logger.error(`Error listando videos con pocas vistas: ${error.message}`);
+    const needsReauth = /insufficient|scope|forbidden/i.test(error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      hint: needsReauth
+        ? 'Puede que necesites volver a conectar YouTube para otorgar el permiso de administración.'
+        : undefined,
+    });
+  }
+});
+
+/**
+ * POST /api/youtube/delete
+ * Body: { videoIds: string[] }
+ * Borra en batch los videos indicados. Sigue aunque alguno falle.
+ */
+router.post('/delete', async (req, res) => {
+  const { videoIds } = req.body;
+
+  if (!Array.isArray(videoIds) || !videoIds.length) {
+    return res.status(400).json({ success: false, error: 'Se requiere un array videoIds no vacío.' });
+  }
+  if (!hasValidToken()) {
+    return res.status(401).json({ success: false, error: 'No hay token de YouTube. Autorizá la app primero.' });
+  }
+  if (!hasRequiredScopes()) {
+    return res.status(403).json({
+      success: false,
+      error: 'El token actual no tiene el permiso de administración de YouTube.',
+      hint: 'Reconectá tu cuenta desde Configuración → Conectar/Reconectar YouTube para otorgar el nuevo permiso.',
+      needsReauth: true,
+    });
+  }
+
+  try {
+    const result = await deleteVideos(videoIds);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error(`Error borrando videos: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+
 
 export default router;

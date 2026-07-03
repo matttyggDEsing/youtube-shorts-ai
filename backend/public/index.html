@@ -7,127 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
-  <style>
-    /* ── Loop Section ─────────────────────────────────────── */
-    .section-loop {
-      max-width: var(--max-w, 1200px);
-      margin: 0 auto 2rem;
-      padding: 0 var(--page-px, 1.5rem);
-    }
-    .loop-card {
-      background: var(--card-bg, #fff);
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: var(--radius, 14px);
-      overflow: hidden;
-    }
-    .loop-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.1rem 1.5rem;
-      border-bottom: 1px solid var(--border, #e5e7eb);
-      gap: 1rem;
-    }
-    .loop-title-group { display: flex; align-items: center; gap: .75rem; }
-    .loop-card-header h2 { font-size: 1rem; font-weight: 700; margin: 0; }
-    .loop-card-header p  { font-size: .8rem; color: var(--text-muted, #6b7280); margin: 0; }
-    .loop-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      font-size: .72rem;
-      font-weight: 600;
-      padding: .25rem .65rem;
-      border-radius: 999px;
-      white-space: nowrap;
-      transition: background .2s, color .2s;
-    }
-    .loop-badge--idle    { background: #f3f4f6; color: #6b7280; }
-    .loop-badge--active  { background: #dcfce7; color: #16a34a; }
-    .loop-badge--error   { background: #fee2e2; color: #dc2626; }
-    .loop-badge--warning { background: #fef9c3; color: #ca8a04; }
-    .loop-badge-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: currentColor;
-    }
-    .loop-badge--active .loop-badge-dot {
-      animation: pulse-dot 1.4s ease infinite;
-    }
-    @keyframes pulse-dot {
-      0%,100% { opacity: 1; } 50% { opacity: .3; }
-    }
-
-    .loop-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
-
-    .loop-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
-    .loop-field { display: flex; flex-direction: column; gap: .35rem; min-width: 140px; }
-    .loop-field label { font-size: .75rem; font-weight: 600; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; }
-    .loop-field select,
-    .loop-field input[type="number"] {
-      font-size: .875rem;
-      padding: .45rem .75rem;
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: var(--radius-sm, 8px);
-      background: var(--input-bg, #f9fafb);
-      color: var(--text, #111827);
-      outline: none;
-      transition: border-color .15s;
-    }
-    .loop-field select:focus,
-    .loop-field input:focus { border-color: var(--accent, #6366f1); }
-    .loop-field input[type="number"] { width: 90px; }
-
-    .loop-btns { display: flex; gap: .5rem; margin-left: auto; }
-    .btn--loop-start {
-      display: inline-flex; align-items: center; gap: .4rem;
-      font-size: .875rem; font-weight: 600;
-      padding: .5rem 1.1rem;
-      border-radius: var(--radius-sm, 8px);
-      border: none; cursor: pointer;
-      background: #16a34a; color: #fff;
-      transition: background .15s, opacity .15s;
-    }
-    .btn--loop-start:hover:not(:disabled) { background: #15803d; }
-    .btn--loop-start:disabled { opacity: .4; cursor: not-allowed; }
-    .btn--loop-stop {
-      display: inline-flex; align-items: center; gap: .4rem;
-      font-size: .875rem; font-weight: 600;
-      padding: .5rem 1.1rem;
-      border-radius: var(--radius-sm, 8px);
-      border: 1px solid #fca5a5; cursor: pointer;
-      background: #fff; color: #dc2626;
-      transition: background .15s, opacity .15s;
-    }
-    .btn--loop-stop:hover:not(:disabled) { background: #fee2e2; }
-    .btn--loop-stop:disabled { opacity: .4; cursor: not-allowed; }
-
-    .loop-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
-    .loop-stat {
-      background: var(--input-bg, #f9fafb);
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: var(--radius-sm, 8px);
-      padding: .75rem 1rem;
-    }
-    .loop-stat-label { font-size: .7rem; font-weight: 600; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; }
-    .loop-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text, #111827); line-height: 1.2; word-break: break-all; }
-    .loop-stat-value a { font-size: .8rem; font-weight: 500; color: var(--accent, #6366f1); text-decoration: none; }
-    .loop-stat-value a:hover { text-decoration: underline; }
-    #loopCurrentCategory { font-size: .875rem; text-transform: capitalize; }
-
-    .loop-error {
-      display: none;
-      align-items: flex-start;
-      gap: .6rem;
-      background: #fee2e2;
-      border: 1px solid #fca5a5;
-      border-radius: var(--radius-sm, 8px);
-      padding: .75rem 1rem;
-      font-size: .825rem;
-      color: #b91c1c;
-    }
-    .loop-error.visible { display: flex; }
-    .loop-error-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
-  </style>
+  <link rel="stylesheet" href="css/improvements.css" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'%3E%3Crect width='28' height='20' rx='4' fill='%23FF0000'/%3E%3Cpolygon points='11,5 11,15 20,10' fill='white'/%3E%3C/svg%3E" />
 </head>
 <body>
 
@@ -145,6 +27,9 @@
         <span class="status-dot idle" id="statusDot"></span>
         <span class="status-label" id="statusLabel">Listo</span>
       </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar entre modo claro y oscuro" title="Cambiar tema">
+        <span id="themeToggleIcon" aria-hidden="true">🌙</span>
+      </button>
     </div>
   </header>
 
@@ -259,7 +144,7 @@
             <a class="btn btn--outline" id="ytLink" href="#" target="_blank" hidden>
               Ver en YouTube ↗
             </a>
-            <button class="btn btn--outline" onclick="App.resetForm()">Nuevo Short</button>
+            <button class="btn btn--outline" onclick="App.resetForm()" aria-label="Crear un nuevo short">Nuevo Short</button>
           </div>
         </div>
 
@@ -399,10 +284,10 @@
             <input type="number" id="loopDelayInput" value="30" min="5" max="600" />
           </div>
           <div class="loop-btns">
-            <button id="loopStartBtn" class="btn--loop-start" onclick="Loop.start()">
+            <button id="loopStartBtn" class="btn--loop-start" onclick="Loop.start()" aria-label="Iniciar loop de generación automática">
               ▶ Iniciar Loop
             </button>
-            <button id="loopStopBtn" class="btn--loop-stop" onclick="Loop.stop()" disabled>
+            <button id="loopStopBtn" class="btn--loop-stop" onclick="Loop.stop()" disabled aria-label="Detener loop de generación automática">
               ⏹ Detener
             </button>
           </div>
@@ -434,11 +319,48 @@
     </div><!-- /loop-card -->
   </section>
 
+  <!-- ══════════════════════════════════════════ LIMPIEZA DE CANAL (full width) -->
+  <section class="section-cleanup">
+    <div class="cleanup-card">
+      <div class="cleanup-header">
+        <div>
+          <h2>🧹 Limpieza de canal</h2>
+          <p>Encontrá y borrá en un solo paso los shorts con pocas vistas.</p>
+        </div>
+      </div>
+
+      <div class="cleanup-body">
+        <div class="cleanup-controls">
+          <div class="loop-field">
+            <label for="cleanupMaxViews">Menos de (vistas)</label>
+            <input type="number" id="cleanupMaxViews" value="10" min="0" max="100000" />
+          </div>
+          <button class="btn btn--secondary" id="cleanupSearchBtn" onclick="Cleanup.search()">
+            Buscar videos
+          </button>
+          <button class="btn btn--sm" id="cleanupSelectAllBtn" onclick="Cleanup.toggleSelectAll()" hidden>
+            Seleccionar todos
+          </button>
+          <button class="btn--loop-stop" id="cleanupDeleteBtn" onclick="Cleanup.deleteSelected()" hidden>
+            🗑 Borrar seleccionados (<span id="cleanupSelectedCount">0</span>)
+          </button>
+        </div>
+
+        <p class="cleanup-hint">
+          Revisá bien la lista antes de borrar: esta acción no se puede deshacer en YouTube.
+        </p>
+
+        <div class="cleanup-results" id="cleanupResults"></div>
+        <p class="cleanup-empty" id="cleanupEmpty" hidden>No se encontraron videos con menos vistas que el umbral.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ══════════════════════════════════════════ HISTORIAL (full width) -->
   <section class="section-history">
     <div class="history-header">
       <h2 class="section-title">Historial</h2>
-      <button class="btn btn--ghost btn--sm" onclick="History.load()">↺ Actualizar</button>
+      <button class="btn btn--ghost btn--sm" onclick="History.load()" aria-label="Actualizar historial">↺ Actualizar</button>
     </div>
     <div class="history-grid" id="historyGrid">
       <div class="history-empty" id="historyEmpty">
@@ -453,3 +375,6 @@
   <script src="js/app.js"></script>
 </body>
 </html>
+
+
+

@@ -1,0 +1,472 @@
+/* ══════════════════════════════════════════════════════════════
+   improvements.css
+   Mejoras de UI sobre style.css — cargar DESPUÉS del CSS base.
+   Contiene: dark mode, responsive, accesibilidad, transiciones,
+   skeleton loaders y el bloque "Modo Loop" (antes inline en el HTML).
+══════════════════════════════════════════════════════════════ */
+
+/* ── 1. DARK MODE ──────────────────────────────────────────────
+   Se activa poniendo data-theme="dark" en <html> (ver app.js, ThemeManager).
+   Si el usuario nunca lo tocó, respeta la preferencia del SO. */
+:root {
+  --transition-theme: background-color .2s ease, border-color .2s ease, color .2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --card-bg: #1c1f26;
+    --border: #2e333d;
+    --text: #f3f4f6;
+    --text-muted: #9ca3af;
+    --input-bg: #262a33;
+    --accent: #818cf8;
+  }
+  html:not([data-theme="light"]) body {
+    background: #12141a;
+  }
+}
+
+html[data-theme="dark"] {
+  --card-bg: #1c1f26;
+  --border: #2e333d;
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --input-bg: #262a33;
+  --accent: #818cf8;
+}
+html[data-theme="dark"] body {
+  background: #12141a;
+}
+
+body, .card, .loop-card, input, select, button {
+  transition: var(--transition-theme);
+}
+
+/* Botón toggle de tema, ubicado en el header */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--input-bg, #f9fafb);
+  color: var(--text, #111827);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: .75rem;
+}
+.theme-toggle:hover { border-color: var(--accent, #6366f1); }
+
+.yt-status-badge.warning {
+  background: #fef9c3;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+/* ── 2. ACCESIBILIDAD ─────────────────────────────────────────── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.day-chip:focus-within,
+.toggle-switch:focus-within .toggle-track {
+  outline: 2px solid var(--accent, #6366f1);
+  outline-offset: 2px;
+}
+
+/* Contraste reforzado para textos secundarios en tema claro */
+.toggle-hint,
+.card-subtitle,
+.loop-card-header p {
+  color: var(--text-muted, #57606f);
+}
+
+/* Área de click mínima recomendada (44px) en botones icon-only */
+.btn--ghost.btn--sm,
+.theme-toggle {
+  min-width: 34px;
+  min-height: 34px;
+}
+
+/* ── 3. TRANSICIONES / MICRO-INTERACCIONES ───────────────────── */
+.progress-bar-fill {
+  transition: width .35s ease;
+}
+
+.step {
+  transition: transform .25s ease, opacity .25s ease;
+}
+.step.active .step-icon {
+  animation: step-pulse 1.2s ease infinite;
+}
+.step.done .step-icon {
+  transform: scale(1.08);
+}
+@keyframes step-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.btn, .btn--generate, .btn--loop-start, .btn--loop-stop {
+  transition: background .15s ease, opacity .15s ease, transform .1s ease;
+}
+.btn:active:not(:disabled),
+.btn--generate:active:not(:disabled) {
+  transform: scale(.97);
+}
+
+/* Spinner para el botón de generar mientras está en curso */
+.btn--generate.is-loading .btn-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+.btn--generate.is-loading .btn-text::after {
+  content: '…';
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── 4. SKELETON LOADERS (historial) ─────────────────────────── */
+.hcard-skeleton {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 14px);
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+}
+.hcard-skeleton .sk-thumb {
+  height: 120px;
+  background: linear-gradient(90deg, var(--input-bg, #f3f4f6) 25%, var(--border, #e5e7eb) 37%, var(--input-bg, #f3f4f6) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+.hcard-skeleton .sk-line {
+  height: 10px;
+  margin: .6rem 1rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--input-bg, #f3f4f6) 25%, var(--border, #e5e7eb) 37%, var(--input-bg, #f3f4f6) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+.hcard-skeleton .sk-line--short { width: 50%; }
+@keyframes sk-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ── 5. RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .loop-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .header-inner {
+    padding: 0 1rem;
+  }
+  .logo-text {
+    font-size: .95rem;
+  }
+  .loop-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cleanup-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cleanup-controls button {
+    width: 100%;
+    justify-content: center;
+  }
+  .cleanup-row {
+    flex-wrap: wrap;
+  }
+  .loop-btns {
+    margin-left: 0;
+    width: 100%;
+  }
+  .loop-btns button {
+    flex: 1;
+    justify-content: center;
+  }
+  .loop-stats {
+    grid-template-columns: 1fr;
+  }
+  .loop-stat[style*="span 2"] {
+    grid-column: auto;
+  }
+  .days-grid {
+    justify-content: space-between;
+  }
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+  .config-row .input-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .oauth-panel .input-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .result-actions {
+    flex-direction: column;
+  }
+}
+
+/* ── 6. MODO LOOP (movido desde <style> inline del HTML) ────────── */
+.section-loop {
+  max-width: var(--max-w, 1200px);
+  margin: 0 auto 2rem;
+  padding: 0 var(--page-px, 1.5rem);
+}
+.loop-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 14px);
+  overflow: hidden;
+}
+.loop-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  gap: 1rem;
+}
+.loop-title-group { display: flex; align-items: center; gap: .75rem; }
+.loop-card-header h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+.loop-card-header p  { font-size: .8rem; margin: 0; }
+.loop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .25rem .65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: background .2s, color .2s;
+}
+.loop-badge--idle    { background: #f3f4f6; color: #6b7280; }
+.loop-badge--active  { background: #dcfce7; color: #16a34a; }
+.loop-badge--error   { background: #fee2e2; color: #dc2626; }
+.loop-badge--warning { background: #fef9c3; color: #ca8a04; }
+.loop-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+}
+.loop-badge--active .loop-badge-dot {
+  animation: pulse-dot 1.4s ease infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; } 50% { opacity: .3; }
+}
+
+.loop-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+.loop-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
+.loop-field { display: flex; flex-direction: column; gap: .35rem; min-width: 140px; }
+.loop-field label { font-size: .75rem; font-weight: 600; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; }
+.loop-field select,
+.loop-field input[type="number"] {
+  font-size: .875rem;
+  padding: .45rem .75rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--input-bg, #f9fafb);
+  color: var(--text, #111827);
+  outline: none;
+  transition: border-color .15s;
+}
+.loop-field select:focus,
+.loop-field input:focus { border-color: var(--accent, #6366f1); }
+.loop-field input[type="number"] { width: 90px; }
+
+.loop-btns { display: flex; gap: .5rem; margin-left: auto; }
+.btn--loop-start {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .875rem; font-weight: 600;
+  padding: .5rem 1.1rem;
+  border-radius: var(--radius-sm, 8px);
+  border: none; cursor: pointer;
+  background: #16a34a; color: #fff;
+  transition: background .15s, opacity .15s;
+}
+.btn--loop-start:hover:not(:disabled) { background: #15803d; }
+.btn--loop-start:disabled { opacity: .4; cursor: not-allowed; }
+.btn--loop-stop {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .875rem; font-weight: 600;
+  padding: .5rem 1.1rem;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid #fca5a5; cursor: pointer;
+  background: var(--card-bg, #fff); color: #dc2626;
+  transition: background .15s, opacity .15s;
+}
+.btn--loop-stop:hover:not(:disabled) { background: #fee2e2; }
+.btn--loop-stop:disabled { opacity: .4; cursor: not-allowed; }
+
+.loop-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
+.loop-stat {
+  background: var(--input-bg, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-sm, 8px);
+  padding: .75rem 1rem;
+}
+.loop-stat-label { font-size: .7rem; font-weight: 600; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; }
+.loop-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text, #111827); line-height: 1.2; word-break: break-all; }
+.loop-stat-value a { font-size: .8rem; font-weight: 500; color: var(--accent, #6366f1); text-decoration: none; }
+.loop-stat-value a:hover { text-decoration: underline; }
+#loopCurrentCategory { font-size: .875rem; text-transform: capitalize; }
+
+.loop-error {
+  display: none;
+  align-items: flex-start;
+  gap: .6rem;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-sm, 8px);
+  padding: .75rem 1rem;
+  font-size: .825rem;
+  color: #b91c1c;
+}
+.loop-error.visible { display: flex; }
+.loop-error-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+
+/* ── 7. LIMPIEZA DE CANAL ────────────────────────────────────── */
+.section-cleanup {
+  max-width: var(--max-w, 1200px);
+  margin: 0 auto 2rem;
+  padding: 0 var(--page-px, 1.5rem);
+}
+.cleanup-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius, 14px);
+  overflow: hidden;
+}
+.cleanup-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.cleanup-header h2 { font-size: 1rem; font-weight: 700; margin: 0 0 .2rem; }
+.cleanup-header p { font-size: .8rem; color: var(--text-muted, #6b7280); margin: 0; }
+
+.cleanup-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: .9rem; }
+
+.cleanup-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
+.cleanup-controls .loop-field { min-width: 130px; }
+.cleanup-controls .loop-field input { width: 100%; }
+
+.cleanup-hint {
+  font-size: .78rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+.cleanup-empty {
+  font-size: .85rem;
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+  padding: 1.5rem 0;
+  margin: 0;
+}
+
+.cleanup-results {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.cleanup-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--input-bg, #f9fafb);
+  transition: background .15s, opacity .2s, transform .2s;
+}
+.cleanup-row.is-deleted {
+  opacity: .45;
+  text-decoration: line-through;
+}
+.cleanup-row.is-deleting {
+  opacity: .6;
+}
+.cleanup-row.is-failed {
+  border-color: #fca5a5;
+  background: #fee2e2;
+}
+.cleanup-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent, #6366f1);
+}
+.cleanup-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--border, #e5e7eb);
+}
+.cleanup-info {
+  flex: 1;
+  min-width: 0;
+}
+.cleanup-title {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cleanup-meta {
+  font-size: .74rem;
+  color: var(--text-muted, #6b7280);
+}
+.cleanup-views {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #dc2626;
+  white-space: nowrap;
+}
+.cleanup-row a {
+  font-size: .75rem;
+  color: var(--accent, #6366f1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cleanup-row a:hover { text-decoration: underline; }
+
+/* Respeta accesibilidad: si el usuario pide menos movimiento, quitamos animaciones */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
