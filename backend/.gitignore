@@ -1,3 +1,4 @@
 credentials/
 output/
 node_modules/
+backend/.env
