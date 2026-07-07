@@ -317,6 +317,111 @@ REGLAS FINALES:
   throw new Error(`No se pudo generar la historia: ${lastError?.message}`);
 }
 
+/**
+ * Genera una historia usando un nicho EN TENDENCIA (no una categoría fija),
+ * inyectando las keywords y hashtags reales detectados en trendDetector.js.
+ * Reutiliza el mismo LLM (Groq) y estructura de salida que generateStory().
+ */
+export async function generateStoryFromTrend({ query, keywords = [], hashtags = [] }, durationSeconds = 55) {
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  const minScenes = 8;
+  const maxScenes = 14;
+  const scenesCount = Math.min(maxScenes, Math.max(minScenes, Math.round(durationSeconds / 5)));
+
+  const recentTitles = readHistory().filter(h => h.title).slice(0, 25).map(h => `"${h.title}"`).join(', ');
+
+  const keywordsTexto = keywords.slice(0, 12).map(k => k.keyword || k).join(', ');
+  const hashtagsTexto = hashtags.slice(0, 10).map(h => h.hashtag || h).join(' ');
+
+  const emotionHintsText = Object.entries(EMOTION_VISUAL_HINTS)
+    .map(([emotion, examples]) => `  ${emotion}: "${examples}"`)
+    .join('\n');
+
+  const systemPrompt = `Eres un guionista experto en YouTube Shorts virales en español latinoamericano.
+Creás historias adictivas con ritmo frenético, narración emocional en primera persona y ganchos narrativos.
+REGLA ABSOLUTA: TODO el contenido del JSON debe estar en español latinoamericano, excepto videoKeywords.
+Tu única tarea es responder con un JSON válido y nada más. Sin markdown, sin explicaciones, sin backticks.`;
+
+  const userPrompt = `[seed:${Date.now()}] Creá un guión para un YouTube Short VIRAL sobre el nicho EN TENDENCIA: "${query}".
+
+Estas son las keywords que MÁS aparecen en los videos top de este nicho ahora mismo, usalas como inspiración temática (no las repitas literal, pero el tema y ángulo debe alinearse con ellas): ${keywordsTexto || '(sin datos, usar tu criterio sobre el nicho)'}
+
+El video dura exactamente ${durationSeconds} segundos y tiene ${scenesCount} escenas.
+
+${recentTitles ? `HISTORIAS YA GENERADAS — NO REPETIR NINGUNA:\n${recentTitles}\n` : ''}
+ESTILO OBLIGATORIO:
+- Narración en PRIMERA PERSONA, voz íntima y emocional
+- Primera frase: gancho BRUTAL en menos de 5 palabras
+- Ritmo frenético, frases cortas
+- Última escena: SIEMPRE cliffhanger o pregunta abierta
+
+REGLAS PARA "videoKeywords" (para B-roll en Pexels, en inglés):
+  keyword[0] = objeto/lugar específico de la escena
+  keyword[1] = acción + emoción del personaje
+  keyword[2] = visual atmosférico, usar estas referencias:
+${emotionHintsText}
+
+Los "tags" del JSON DEBEN incluir estos hashtags reales que ya funcionan en este nicho (sin el símbolo #, como palabras sueltas): ${hashtagsTexto || 'shorts, viral'}
+
+Devolvé ÚNICAMENTE este JSON:
+{
+  "title": "Título impactante (máx 60 caracteres, español)",
+  "description": "Descripción en español (máx 150 palabras) con call to action",
+  "tags": ["etiqueta1", "etiqueta2", "etiqueta3", "etiqueta4", "etiqueta5", "shorts"],
+  "scenes": [
+    { "text": "...", "videoKeywords": ["...", "...", "..."], "duration": 4, "emotion": "tension|sadness|fear|hope|love|shock|mystery|suspense" }
+  ],
+  "fullNarration": "..."
+}`;
+
+  const temperatures = [0.92, 1.05, 1.15];
+  let lastError;
+
+  for (let intento = 1; intento <= 3; intento++) {
+    try {
+      logger.step(`Generando historia por tendencia "${query}" (intento ${intento}/3)...`);
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+        temperature: temperatures[intento - 1],
+        max_tokens: 3500,
+      });
+
+      const rawContent = completion.choices[0]?.message?.content?.trim();
+      if (!rawContent) throw new Error('Groq devolvió respuesta vacía');
+
+      const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      const story = JSON.parse(cleaned);
+
+      if (!story.title || !story.scenes || !Array.isArray(story.scenes) || story.scenes.length < 4) {
+        throw new Error('JSON con estructura inválida');
+      }
+
+      story.scenes = story.scenes.map((scene) => {
+        let kw = scene.videoKeywords;
+        if (!Array.isArray(kw)) kw = kw ? [kw] : [];
+        while (kw.length < 3) {
+          const emotion = scene.emotion || 'tension';
+          const fallback = EMOTION_VISUAL_HINTS[emotion]?.split(',')[kw.length]?.trim() || `cinematic ${emotion} scene`;
+          kw.push(fallback);
+        }
+        return { ...scene, videoKeywords: kw.slice(0, 3) };
+      });
+
+      logger.ok(`Historia por tendencia generada: "${story.title}"`);
+      return story;
+
+    } catch (error) {
+      lastError = error;
+      logger.warn(`Error intento ${intento}: ${error.message}`);
+      if (intento < 3) await sleep(intento * 2000);
+    }
+  }
+
+  throw new Error(`No se pudo generar la historia por tendencia: ${lastError?.message}`);
+}
+
 export function getCategories() {
   return Object.entries(CATEGORIAS).map(([id, desc]) => ({
     id,

@@ -1,0 +1,202 @@
+/* ══════════════════════════════════════════════════════════════
+   SECCIÓN: Nichos en Tendencia
+   Usa los mismos tokens definidos en style.css (--bg, --surface, etc.)
+══════════════════════════════════════════════════════════════ */
+
+.section-trends {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 32px;
+}
+
+.trends-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.trends-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.trends-header h2 { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.trends-header p  { font-size: 0.85rem; color: var(--text-2); margin-top: 4px; }
+
+.trends-refresh-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.trends-refresh-btn:hover { border-color: var(--border-hover); color: var(--text); }
+
+/* ── Loading / vacío ── */
+.trends-loading, .trends-empty {
+  color: var(--text-3);
+  font-size: 0.85rem;
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* ── Grillas de nichos ── */
+.trends-group-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  margin: 18px 0 10px;
+}
+.trends-group-label:first-child { margin-top: 0; }
+
+.trends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.niche-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+.niche-chip:hover { border-color: var(--red); background: var(--red-subtle); }
+.niche-chip.is-selected { border-color: var(--red); background: var(--red-subtle); }
+
+.niche-chip-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  margin-bottom: 3px;
+}
+.niche-chip-meta {
+  font-size: 0.74rem;
+  color: var(--text-3);
+}
+.niche-chip-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--green-dim);
+  color: var(--green);
+  margin-left: 6px;
+}
+
+/* ── Input manual ── */
+.trends-manual {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+.trends-manual input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.trends-manual input:focus { outline: none; border-color: var(--border-hover); }
+
+/* ── Panel de análisis (paso 2) ── */
+.trends-analysis {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.trends-analysis-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.trends-analysis-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  margin-bottom: 16px;
+}
+
+.trends-tags-block { margin-bottom: 16px; }
+.trends-tags-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.trends-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trend-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+.trend-tag:hover { border-color: var(--border-hover); }
+.trend-tag.is-off { opacity: 0.35; text-decoration: line-through; }
+.trend-tag-count {
+  font-size: 0.68rem;
+  color: var(--text-3);
+  background: var(--surface-3);
+  border-radius: 10px;
+  padding: 1px 6px;
+}
+
+.trends-titles-list {
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.trends-titles-list li::before { content: "▸ "; color: var(--text-3); }
+
+.trends-generate-btn {
+  margin-top: 18px;
+  width: 100%;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 13px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.trends-generate-btn:hover:not(:disabled) { background: var(--red-dim); }
+.trends-generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }

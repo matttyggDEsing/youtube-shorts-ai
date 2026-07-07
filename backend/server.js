@@ -22,7 +22,8 @@ import historyRoutes  from './src/routes/history.js';
 import scheduleRoutes from './src/routes/schedule.js';
 import youtubeRoutes  from './src/routes/youtube.js';
 import loopRoutes     from './src/routes/loop.js';
-import liveRoutes     from './src/routes/live.js';                        // ← NUEVO
+import liveRoutes     from './src/routes/live.js';   
+import trendsRoutes from './src/routes/trends.js';                   // ← NUEVO
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -41,7 +42,8 @@ app.use('/api/history',   historyRoutes);
 app.use('/api/schedule',  scheduleRoutes);
 app.use('/api/youtube',   youtubeRoutes);
 app.use('/api/loop',      loopRoutes);
-app.use('/api/live',      liveRoutes);                                    // ← NUEVO
+app.use('/api/live',      liveRoutes);
+app.use('/api/trends', trendsRoutes);                                  // ← NUEVO
 
 // Categorías disponibles
 app.get('/api/categories', (req, res) => {

@@ -1,5 +1,118 @@
 [
   {
+    "id": "20df3ee6-d72a-4ea0-baf6-422c13ee2cc0",
+    "title": "",
+    "category": "romance",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-07-07T05:27:46.574Z",
+    "duration": 0,
+    "error": "No se pudo generar la historia: 429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kw37f0g4fhg8xm39jy0mchak` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99460, Requested 5076. Please try again in 1h5m19.104s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}"
+  },
+  {
+    "id": "0efd161c-cffd-44fd-93e8-3a0f067649af",
+    "title": "",
+    "category": "motivacion",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-07-07T05:27:30.189Z",
+    "duration": 0,
+    "error": "No se pudo generar la historia: 429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kw37f0g4fhg8xm39jy0mchak` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99479, Requested 5072. Please try again in 1h5m32.064s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}"
+  },
+  {
+    "id": "76a02e15-1c2e-4aec-9ddd-624dbf539959",
+    "title": "",
+    "category": "misterio",
+    "filePath": "",
+    "youtubeUrl": null,
+    "status": "failed",
+    "createdAt": "2026-07-07T05:27:13.722Z",
+    "duration": 0,
+    "error": "No se pudo generar la historia: 429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kw37f0g4fhg8xm39jy0mchak` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99498, Requested 5078. Please try again in 1h5m53.664s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}"
+  },
+  {
+    "id": "5850018c-d73e-4954-8d93-a924e0f8b1f9",
+    "title": "La Sombra Me Observa",
+    "category": "terror",
+    "filePath": "",
+    "youtubeUrl": "https://youtu.be/PP_b2Nean4Y",
+    "status": "uploaded",
+    "createdAt": "2026-07-07T05:23:40.029Z",
+    "duration": 24,
+    "description": "Descubre la verdad detrás de la sombra que me acecha. Suscríbete y no te pierdas la parte 2 para conocer el final de esta historia de terror. ¿Qué secreto esconde la oscuridad?",
+    "tags": [
+      "terror",
+      "misterio",
+      "sombra",
+      "obsesión",
+      "suspense",
+      "shorts",
+      "historias"
+    ],
+    "youtubeId": "PP_b2Nean4Y",
+    "fileDeleted": true
+  },
+  {
+    "id": "632bd7bc-2c06-4ed8-81b5-99812ba39d7b",
+    "title": "La niña me señaló",
+    "category": "kids",
+    "filePath": "output\\20260707051822_kids_la-nina-me-senalo.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-07-07T05:17:41.031Z",
+    "duration": 29,
+    "description": "Descubre el misterio detrás de la niña que me señaló y sonrió. ¡Suscríbete y no te pierdas la parte 2! Esta historia te dejará sin aliento. ¿Qué secreto esconde esta niña?",
+    "tags": [
+      "misterio",
+      "niña",
+      "señaló",
+      "sonrió",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
+    "id": "5dd491a5-f56c-4674-9970-b84f7f58c752",
+    "title": "Alguien en mi cuarto",
+    "category": "ansiedad mindfulness salud mental shorts",
+    "filePath": "output\\20260707051017_ansiedad mindfulness salud mental shorts_alguien-en-mi-cuarto.mp4",
+    "youtubeUrl": "https://youtu.be/A_FqjfskzeU",
+    "status": "uploaded",
+    "createdAt": "2026-07-07T05:09:40.441Z",
+    "duration": 25,
+    "description": "Descubre el terror que me embrujó. No te pierdas la continuación, suscríbete y activa la campana. ¿Qué secreto escondía mi hogar?",
+    "tags": [
+      "miedo",
+      "ansiedad",
+      "entidades sobrenaturales",
+      "shorts",
+      "historias",
+      "terror"
+    ],
+    "youtubeId": "A_FqjfskzeU"
+  },
+  {
+    "id": "aeb929e3-2690-45ab-bbdb-b0fdd3ef4e01",
+    "title": "La niña del abismo",
+    "category": "historias de terror reales shorts",
+    "filePath": "output\\20260707050526_historias de terror reales shorts_la-nina-del-abismo.mp4",
+    "youtubeUrl": null,
+    "status": "local",
+    "createdAt": "2026-07-07T05:04:43.055Z",
+    "duration": 32,
+    "description": "Descubre la historia de terror que me persigue. Suscríbete y mira la parte 2 para conocer el final. No te pierdas esta historia real de terror que te dejará sin aliento.",
+    "tags": [
+      "historias de terror",
+      "casas embrujadas",
+      "entidades sobrenaturales",
+      "miedo psicológico",
+      "shorts",
+      "historias"
+    ]
+  },
+  {
     "id": "c2b27fd6-c037-448c-b1f2-e27bc46fb8a8",
     "title": "",
     "category": "motivacion",

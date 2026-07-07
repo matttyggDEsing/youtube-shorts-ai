@@ -95,7 +95,7 @@ export async function saveTokenFromCode(code) {
  * Obtener cliente OAuth2 autenticado.
  * Carga y refresca el token automáticamente.
  */
-async function getAuthenticatedClient() {
+export async function getAuthenticatedClient() {
   const oAuth2Client = createOAuthClient();
 
   if (!fs.existsSync(TOKEN_PATH)) {

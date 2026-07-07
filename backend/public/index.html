@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/improvements.css" />
+  <link rel="stylesheet" href="css/trends.css" />
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'%3E%3Crect width='28' height='20' rx='4' fill='%23FF0000'/%3E%3Cpolygon points='11,5 11,15 20,10' fill='white'/%3E%3C/svg%3E" />
 </head>
@@ -356,6 +357,42 @@
     </div>
   </section>
 
+  <!-- ══════════════════════════════════════════ NICHOS EN TENDENCIA (full width) -->
+  <section class="section-trends">
+    <div class="trends-card">
+      <div class="trends-header">
+        <div>
+          <h2>🔥 Nichos en Tendencia</h2>
+          <p>Elegí un nicho, confirmá las keywords y hashtags reales, y generá el Short en ese estilo.</p>
+        </div>
+        <button class="trends-refresh-btn" onclick="Trends.loadTrends()">↺ Actualizar</button>
+      </div>
+
+      <div class="trends-loading" id="trendsLoading">Buscando nichos en tendencia…</div>
+
+      <div id="trendsContent" hidden>
+        <div id="trendsGroupActuales">
+          <div class="trends-group-label">En tendencia ahora</div>
+          <div class="trends-grid" id="trendsGridActuales"></div>
+        </div>
+
+        <div class="trends-group-label">Nichos evergreen (siempre rentables)</div>
+        <div class="trends-grid" id="trendsGridEvergreen"></div>
+
+        <div class="trends-manual">
+          <input type="text" id="trendsManualInput" placeholder="O escribí tu propio nicho/búsqueda…" />
+          <button class="btn btn--secondary" onclick="Trends.analizarNichoManual()">Analizar</button>
+        </div>
+      </div>
+
+      <!-- ── Paso 2: análisis + confirmación ── -->
+      <div class="trends-analysis" id="trendsAnalysis" hidden>
+        <div class="trends-analysis-title" id="trendsAnalysisTitle"></div>
+        <div id="trendsAnalysisBody"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ══════════════════════════════════════════ HISTORIAL (full width) -->
   <section class="section-history">
     <div class="history-header">
@@ -373,5 +410,6 @@
   <div class="toast" id="toast"></div>
 
   <script src="js/app.js"></script>
+  <script src="js/trends.js"></script>
 </body>
 </html>
