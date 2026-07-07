@@ -1,5 +1,7 @@
 // ════════════════════════════════════════
-// VIDEO EDITOR v3 — Subtítulos ASS estilo CapCut / Captions AI
+// VIDEO EDITOR v4 — Subtítulos ASS estilo CapCut / Captions AI
+//                 + Mastering de audio (loudnorm/compresor)
+//                 + Música de fondo con ducking automático
 // parseVtt embebida · word-level highlight · borde negro grueso · sombra suave
 // ════════════════════════════════════════
 
@@ -9,6 +11,7 @@ import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '../utils/logger.js';
+import { pickMusicTrack } from './musicSelector.js';
 
 // ════════════════════════════════════════════════════════════
 // PARSER VTT — embebido (parseVtt no era exportada por ttsNarrator.js)
@@ -74,6 +77,21 @@ const VIDEO_CONFIG = {
   audioChannels:   2,
 };
 
+// ── Configuración de audio (mastering + música) ─────────────
+const AUDIO_CONFIG = {
+  // Masterización de la narración
+  highpassHz:       80,     // corta rumble/graves sucios de la voz
+  loudnormI:        -14,    // LUFS objetivo (estándar YouTube/redes)
+  loudnormTP:       -1.5,   // true peak máximo (dBTP)
+  loudnormLRA:      11,     // rango de loudness permitido
+  fadeInSec:        0.05,   // fade-in cortito para evitar click al inicio
+
+  // Música de fondo
+  musicVolumeDb:    -24,    // volumen relativo de la música bajo la voz
+  musicDuckingEnabled: true,
+  musicFadeOutSec:  1.2,    // fade-out de la música al final del clip
+};
+
 // ── Configuración de subtítulos ─────────────────────────────
 const SUB_CONFIG = {
   // Posición vertical: 88% de la altura (zona inferior segura en 9:16)
@@ -113,6 +131,28 @@ function getVideoDuration(videoPath) {
       resolve(metadata.format.duration || 0);
     });
   });
+}
+
+// ════════════════════════════════════════════════════════════
+// CONFIG — leer sección "music" de config.json (opcional)
+// ════════════════════════════════════════════════════════════
+
+function readMusicSettings() {
+  try {
+    const raw = fs.readFileSync('./config.json', 'utf8');
+    const cfg = JSON.parse(raw);
+    return {
+      enabled:        cfg.music?.enabled ?? true,
+      volumeDb:       cfg.music?.volumeDb ?? AUDIO_CONFIG.musicVolumeDb,
+      duckingEnabled: cfg.music?.duckingEnabled ?? AUDIO_CONFIG.musicDuckingEnabled,
+    };
+  } catch {
+    return {
+      enabled:        true,
+      volumeDb:       AUDIO_CONFIG.musicVolumeDb,
+      duckingEnabled: AUDIO_CONFIG.musicDuckingEnabled,
+    };
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -296,15 +336,32 @@ function escapeDrawtext(text) {
 }
 
 /**
- * PASO 0 — Normalizar audio TTS a 44100Hz estéreo AAC
+ * PASO 0 — Masterizar el audio de la narración TTS.
+ *
+ * Antes solo se re-codificaba a 44100Hz estéreo. Ahora se aplica una
+ * cadena de mastering pensada para voz narrada:
+ *   1) highpass  → quita graves sucios / rumble de fondo del TTS
+ *   2) acompressor → pareja los picos, la voz suena más consistente
+ *      (menos partes "gritadas" y partes "susurradas")
+ *   3) loudnorm  → normaliza a -14 LUFS (estándar YouTube/redes), así
+ *      todos los Shorts suenan parejo entre sí sin importar la voz usada
+ *   4) afade in  → evita el "click" audible al arrancar el audio
  */
 async function normalizeAudio(inputAudioPath, tempDir) {
-  logger.step('Normalizando audio TTS a 44100Hz estéreo...');
+  logger.step('Masterizando audio de narración (limpieza + loudness)...');
   const normalizedPath = path.join(tempDir, 'narration_normalized.aac');
+
+  const audioFilters = [
+    `highpass=f=${AUDIO_CONFIG.highpassHz}`,
+    'acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2',
+    `loudnorm=I=${AUDIO_CONFIG.loudnormI}:TP=${AUDIO_CONFIG.loudnormTP}:LRA=${AUDIO_CONFIG.loudnormLRA}`,
+    `afade=t=in:st=0:d=${AUDIO_CONFIG.fadeInSec}`,
+  ].join(',');
 
   await runFfmpegDirect([
     '-y',
     '-i', inputAudioPath,
+    '-af', audioFilters,
     '-c:a', 'aac',
     '-b:a', VIDEO_CONFIG.audioBitrate,
     '-ar', String(VIDEO_CONFIG.audioSampleRate),
@@ -312,8 +369,73 @@ async function normalizeAudio(inputAudioPath, tempDir) {
     normalizedPath,
   ]);
 
-  logger.ok('Audio normalizado');
+  logger.ok('Audio masterizado (highpass + compresor + loudnorm)');
   return normalizedPath;
+}
+
+/**
+ * PASO 0b — Mezclar la narración masterizada con música de fondo.
+ *
+ * Si no hay música disponible para la categoría (ni fallback "generic"),
+ * se sigue solo con la narración sin romper el pipeline.
+ *
+ * Ducking automático: usamos sidechaincompress para que la propia
+ * narración "empuje hacia abajo" el volumen de la música mientras se
+ * habla, y la música suba un poco en los silencios — el mismo efecto
+ * que se usa en podcasts/videos profesionales, en vez de dejar la
+ * música siempre plana a un volumen fijo.
+ */
+async function mixWithBackgroundMusic(narrationPath, category, tempDir) {
+  const settings = readMusicSettings();
+  if (!settings.enabled) {
+    logger.info('Música de fondo desactivada en config.json — se sigue solo con narración.');
+    return narrationPath;
+  }
+
+  const musicPath = pickMusicTrack(category);
+  if (!musicPath) {
+    return narrationPath;
+  }
+
+  logger.step('Mezclando narración con música de fondo...');
+  const mixedPath = path.join(tempDir, 'narration_with_music.aac');
+
+  let narrationDur = 0;
+  try { narrationDur = await getVideoDuration(narrationPath); } catch { /* noop */ }
+  const totalDur = narrationDur > 0 ? narrationDur : 60;
+  const fadeStart = Math.max(0, totalDur - AUDIO_CONFIG.musicFadeOutSec).toFixed(2);
+
+  const musicPrep =
+    `[1:a]aloop=loop=-1:size=2e9,` +
+    `volume=${settings.volumeDb}dB,` +
+    `atrim=0:${totalDur.toFixed(2)},` +
+    `afade=t=out:st=${fadeStart}:d=${AUDIO_CONFIG.musicFadeOutSec}[musicraw]`;
+
+  const filterComplex = settings.duckingEnabled
+    ? `${musicPrep};[musicraw][0:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=300:makeup=1[musicducked];` +
+      `[0:a][musicducked]amix=inputs=2:duration=first:dropout_transition=0[audioFinal]`
+    : `${musicPrep};[0:a][musicraw]amix=inputs=2:duration=first:dropout_transition=0[audioFinal]`;
+
+  try {
+    await runFfmpegDirect([
+      '-y',
+      '-i', narrationPath,
+      '-i', musicPath,
+      '-filter_complex', filterComplex,
+      '-map', '[audioFinal]',
+      '-c:a', 'aac',
+      '-b:a', VIDEO_CONFIG.audioBitrate,
+      '-ar', String(VIDEO_CONFIG.audioSampleRate),
+      '-ac', String(VIDEO_CONFIG.audioChannels),
+      mixedPath,
+    ], 120000);
+
+    logger.ok(`Música de fondo mezclada${settings.duckingEnabled ? ' (con ducking automático)' : ''}: ${path.basename(musicPath)}`);
+    return mixedPath;
+  } catch (error) {
+    logger.warn(`No se pudo mezclar música de fondo: ${error.message}. Se continúa solo con narración.`);
+    return narrationPath;
+  }
 }
 
 /**
@@ -410,16 +532,16 @@ async function concatenateClips(processedPaths, tempDir) {
 }
 
 /**
- * PASO 4 — Mezclar video con audio normalizado
+ * PASO 4 — Mezclar video con audio final (narración + música ya mezcladas)
  */
-async function addAudio(videoPath, normalizedAudioPath, tempDir) {
-  logger.step('Mezclando video con narración...');
+async function addAudio(videoPath, finalAudioPath, tempDir) {
+  logger.step('Mezclando video con pista de audio final...');
   const withAudioPath = path.join(tempDir, 'with_audio.mp4');
 
   let videoDur = 0;
   let audioDur = 0;
   try { videoDur = await getVideoDuration(videoPath); } catch { /* noop */ }
-  try { audioDur = await getVideoDuration(normalizedAudioPath); } catch { /* noop */ }
+  try { audioDur = await getVideoDuration(finalAudioPath); } catch { /* noop */ }
 
   logger.info(`Duración video: ${videoDur.toFixed(1)}s | audio: ${audioDur.toFixed(1)}s`);
 
@@ -429,7 +551,7 @@ async function addAudio(videoPath, normalizedAudioPath, tempDir) {
       ? ['-stream_loop', '-1']
       : []),
     '-i', videoPath,
-    '-i', normalizedAudioPath,
+    '-i', finalAudioPath,
     '-c:v', 'copy', '-c:a', 'copy',
     '-shortest',
     '-map', '0:v:0', '-map', '1:a:0',
@@ -713,14 +835,25 @@ async function exportFinal(inputPath, outputPath) {
 // FUNCIÓN PRINCIPAL
 // ════════════════════════════════════════════════════════════
 
-export async function createShort(scenes, rawClips, audioPath, vttPath, outputPath, title) {
+/**
+ * @param {Array}  scenes      Escenas generadas por storyGenerator
+ * @param {Array}  rawClips    Clips de B-roll descargados por videoFetcher
+ * @param {string} audioPath   Ruta al mp3 de narración (TTS)
+ * @param {string} vttPath     Ruta al .vtt de la narración
+ * @param {string} outputPath  Ruta de salida del mp4 final
+ * @param {string} title       Título del video (para el intro)
+ * @param {string} category    Categoría de la historia (para elegir música de fondo)
+ */
+export async function createShort(scenes, rawClips, audioPath, vttPath, outputPath, title, category = 'terror') {
   const tempDir = path.resolve(path.dirname(audioPath));
 
   try {
     const normalizedAudio = await normalizeAudio(audioPath, tempDir);
+    const finalAudio      = await mixWithBackgroundMusic(normalizedAudio, category, tempDir);
+
     const processedPaths  = await processAllClips(rawClips, scenes, tempDir);
     const joinedPath      = await concatenateClips(processedPaths, tempDir);
-    const withAudioPath   = await addAudio(joinedPath, normalizedAudio, tempDir);
+    const withAudioPath   = await addAudio(joinedPath, finalAudio, tempDir);
     const withSubsPath    = await addSubtitles(withAudioPath, vttPath, tempDir);
 
     const channelName   = process.env.CHANNEL_NAME || 'Mi Canal de Historias';

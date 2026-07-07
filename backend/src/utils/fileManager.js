@@ -2,6 +2,7 @@
 // FILE MANAGER — Gestión de archivos y directorios
 // Fix #6: cleanTempDir era async sin necesidad — convertida a síncrona
 // + Loop: agregadas deleteVideoFile, updateHistoryEntry, writeHistory, addHistoryEntry
+// + Música: ensureDirectories ahora también crea assets/music/<categoria> y /generic
 // ════════════════════════════════════════
 import fs from 'fs';
 import fsP from 'fs/promises';
@@ -13,15 +14,33 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ─── Directorios ──────────────────────────────────────────────────────────────
 
+const MUSIC_CATEGORIES = [
+  'generic',
+  'terror',
+  'misterio',
+  'motivacion',
+  'romance',
+  'ciencia_ficcion',
+  'historias_reales',
+  'leyendas',
+  'suspenso',
+];
+
 /**
  * Crear directorios necesarios al arrancar la app
  */
 export function ensureDirectories() {
-  const dirs = ['./output', './temp', './logs', './credentials'];
+  const dirs = [
+    './output',
+    './temp',
+    './logs',
+    './credentials',
+    ...MUSIC_CATEGORIES.map((cat) => `./assets/music/${cat}`),
+  ];
   for (const dir of dirs) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  logger.ok('Directorios de trabajo verificados.');
+  logger.ok('Directorios de trabajo verificados (incluye assets/music/<categoria>).');
 }
 
 // ─── Nombres de archivo ───────────────────────────────────────────────────────

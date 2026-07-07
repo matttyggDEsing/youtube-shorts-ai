@@ -15,6 +15,12 @@
   "autoUpload": true,
   "voice": "es-MX-DaliaNeural",
 
+  "music": {
+    "enabled": true,
+    "volumeDb": -24,
+    "duckingEnabled": true
+  },
+
   "live": {
     "enabled": true,
     "autoRestart": true,

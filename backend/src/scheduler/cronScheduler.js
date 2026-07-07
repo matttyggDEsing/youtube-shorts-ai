@@ -1,6 +1,7 @@
 // ════════════════════════════════════════
 // CRON SCHEDULER v2 — Pipeline con B-roll real de Pexels
 // Fix #7: updateConfig ya no reinicia el scheduler si hay un pipeline activo
+// + createShort ahora recibe "category" para elegir música de fondo
 // ════════════════════════════════════════
 
 import cron from 'node-cron';
@@ -47,7 +48,7 @@ function writeConfig(config) {
 }
 
 /**
- * Pipeline completo: historia → TTS → B-roll Pexels → video → (upload)
+ * Pipeline completo: historia → TTS → B-roll Pexels → video (+ música) → (upload)
  */
 export async function runPipeline({ category, voice, autoUpload = false, onProgress = null }) {
   const id      = uuidv4();
@@ -94,8 +95,8 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
     const clipsDir = path.join(tempDir, 'clips');
     const rawClips = await fetchSceneVideos(story.scenes, clipsDir, category);
 
-    // ── PASO 4: Montar video ──────────────────────────────────
-    emit('video', 70, 'Montando video con efectos y subtítulos...');
+    // ── PASO 4: Montar video (narración masterizada + música + subtítulos) ──
+    emit('video', 70, 'Montando video con audio, música y subtítulos...');
     const outputFilename = generateOutputFilename(category, story.title);
     const outputPath     = path.join(process.env.OUTPUT_DIR || './output', outputFilename);
 
@@ -105,7 +106,8 @@ export async function runPipeline({ category, voice, autoUpload = false, onProgr
       audioPath,
       vttPath,
       outputPath,
-      story.title
+      story.title,
+      category
     );
 
     historyEntry.filePath    = outputPath;
